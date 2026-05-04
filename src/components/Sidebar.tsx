@@ -6,13 +6,14 @@ import {
   Receipt, 
   Shield, 
   Settings, 
+  Database,
   User as UserIcon,
   Target,
   LogOut
 } from "lucide-react";
 import { UserRole } from "../types";
 
-export const Sidebar = ({ currentRole, onLogout }: { currentRole: UserRole, onLogout: () => void }) => {
+export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: UserRole, onLogout: () => void, displayName?: string }) => {
   const location = useLocation();
   
   const menuItems = [
@@ -22,6 +23,7 @@ export const Sidebar = ({ currentRole, onLogout }: { currentRole: UserRole, onLo
     { name: "Shops", path: "/shops", icon: Store, roles: ["SUPER_ADMIN", "AGENT"] },
     { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT"] }, // Using LayoutDashboard as placeholder icon
+    { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
     { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
   ];
 
@@ -74,7 +76,7 @@ export const Sidebar = ({ currentRole, onLogout }: { currentRole: UserRole, onLo
             <UserIcon className="w-5 h-5 text-zinc-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate lowercase">codemk1218</p>
+            <p className="text-sm font-medium text-white truncate">{displayName || "operator"}</p>
             <p className="text-[10px] text-zinc-500 truncate uppercase font-bold tracking-wider italic">{currentRole.replace("_", " ")}</p>
           </div>
         </div>

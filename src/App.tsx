@@ -21,30 +21,79 @@ import { DashboardPage } from "./components/Dashboard";
 import { UserManagementPage } from "./components/UserManagement";
 import { BetManagementPage } from "./components/BetManagement";
 import { ShopManagementPage } from "./components/ShopManagement";
+import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { Button } from "@/components/ui/button";
+import { authApi } from "./modules/auth/api";
 
 export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>("SUPER_ADMIN");
+  const [displayName, setDisplayName] = useState("Operator");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [booting, setBooting] = useState(true);
 
   useEffect(() => {
-    const session = localStorage.getItem("mezzobet_session");
-    if (session) {
-      setIsAuthenticated(true);
-      setCurrentRole(session as UserRole);
-    }
+    (async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setBooting(false);
+        return;
+      }
+
+      try {
+        const me = await authApi.me();
+        const backendRole = me.user?.Role?.name;
+
+        const roleMap: Record<string, UserRole> = {
+          super_admin: "SUPER_ADMIN",
+          agent: "AGENT",
+          shop_owner: "SHOP_OWNER"
+        };
+
+        const uiRole = backendRole ? roleMap[backendRole] : undefined;
+        if (!uiRole) {
+          // Token exists but not allowed for admin.
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("mezzobet_session");
+          setIsAuthenticated(false);
+          setBooting(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setCurrentRole(uiRole);
+        setDisplayName(me.user.displayName || me.user.email || "Operator");
+        localStorage.setItem("mezzobet_session", JSON.stringify({ role: uiRole, displayName: me.user.displayName || me.user.email || "Operator" }));
+      } catch {
+        // Invalid token or API not reachable
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("mezzobet_session");
+        setIsAuthenticated(false);
+      } finally {
+        setBooting(false);
+      }
+    })();
   }, []);
 
-  const handleLogin = (role: UserRole) => {
+  const handleLogin = (role: UserRole, name: string) => {
     setIsAuthenticated(true);
     setCurrentRole(role);
-    localStorage.setItem("mezzobet_session", role);
+    setDisplayName(name);
+    localStorage.setItem("mezzobet_session", JSON.stringify({ role, displayName: name }));
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setDisplayName("Operator");
     localStorage.removeItem("mezzobet_session");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
   };
+
+  if (booting) {
+    return <div className="min-h-screen bg-[#0A0A0A] text-zinc-400 flex items-center justify-center">Loading...</div>;
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
@@ -53,10 +102,10 @@ export default function App() {
   return (
     <Router>
       <div className="flex min-h-screen bg-[#0A0A0A] selection:bg-brand selection:text-black">
-        <Sidebar currentRole={currentRole} onLogout={handleLogout} />
+        <Sidebar currentRole={currentRole} onLogout={handleLogout} displayName={displayName} />
         
         <main className="flex-1 flex flex-col min-w-0">
-          <TopNav currentRole={currentRole} setCurrentRole={setCurrentRole} onLogout={handleLogout} />
+          <TopNav currentRole={currentRole} onLogout={handleLogout} displayName={displayName} />
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
@@ -74,6 +123,16 @@ export default function App() {
                     <Route path="/users" element={<UserManagementPage role={currentRole} />} />
                     <Route path="/shops" element={<ShopManagementPage role={currentRole} />} />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
+                    <Route
+                      path="/data-fetching"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? (
+                          <DataFetchingPage />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                        )
+                      }
+                    />
                     
                     {/* Placeholder Views */}
                     <Route path="/agents" element={
