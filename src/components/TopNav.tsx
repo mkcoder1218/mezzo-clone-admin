@@ -2,13 +2,14 @@ import {
   Shield, 
   Bell, 
   ChevronRight,
-  Target
+  LogOut
 } from "lucide-react";
 import { UserRole } from "../types";
 
-export const TopNav = ({ currentRole, setCurrentRole }: { 
+export const TopNav = ({ currentRole, setCurrentRole, onLogout }: { 
   currentRole: UserRole, 
-  setCurrentRole: (r: UserRole) => void 
+  setCurrentRole: (r: UserRole) => void,
+  onLogout: () => void
 }) => {
   return (
     <header className="h-20 border-b border-zinc-800/50 bg-[#0A0A0A] px-8 flex items-center justify-between sticky top-0 z-50">
@@ -29,7 +30,7 @@ export const TopNav = ({ currentRole, setCurrentRole }: {
               <select 
                 value={currentRole}
                 onChange={(e) => setCurrentRole(e.target.value as UserRole)}
-                className="bg-transparent border-none text-xs font-bold text-white outline-none focus:ring-0 cursor-pointer p-0 h-4 leading-none"
+                className="bg-transparent border-none text-xs font-bold text-white outline-none focus:ring-0 cursor-pointer p-0 h-4 leading-none font-sans"
               >
                 <option value="SUPER_ADMIN" className="bg-zinc-900">Super Admin</option>
                 <option value="AGENT" className="bg-zinc-900">Network Agent</option>
@@ -43,6 +44,14 @@ export const TopNav = ({ currentRole, setCurrentRole }: {
         <button className="p-2 text-zinc-400 hover:text-brand transition-colors relative group">
           <Bell className="w-5 h-5 group-hover:animate-shake" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-[#0A0A0A]"></span>
+        </button>
+
+        <button 
+          onClick={onLogout}
+          className="p-2 text-zinc-400 hover:text-rose-500 transition-colors group"
+          title="Terminate Session"
+        >
+          <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
         </button>
         
         <div className="flex items-center gap-3 pl-2">

@@ -6,13 +6,13 @@ import {
   Receipt, 
   Shield, 
   Settings, 
-  Database,
   User as UserIcon,
-  Target
+  Target,
+  LogOut
 } from "lucide-react";
 import { UserRole } from "../types";
 
-export const Sidebar = ({ currentRole }: { currentRole: UserRole }) => {
+export const Sidebar = ({ currentRole, onLogout }: { currentRole: UserRole, onLogout: () => void }) => {
   const location = useLocation();
   
   const menuItems = [
@@ -22,7 +22,6 @@ export const Sidebar = ({ currentRole }: { currentRole: UserRole }) => {
     { name: "Shops", path: "/shops", icon: Store, roles: ["SUPER_ADMIN", "AGENT"] },
     { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT"] }, // Using LayoutDashboard as placeholder icon
-    { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
     { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
   ];
 
@@ -49,7 +48,7 @@ export const Sidebar = ({ currentRole }: { currentRole: UserRole }) => {
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                   isActive 
-                    ? "bg-brand text-black font-bold shadow-[0_0_20px_rgba(204,255,0,0.2)]" 
+                    ? "bg-brand text-black font-bold shadow-[0_0_20_px_rgba(204,255,0,0.2)]" 
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
@@ -61,7 +60,15 @@ export const Sidebar = ({ currentRole }: { currentRole: UserRole }) => {
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-zinc-800/50">
+      <div className="mt-auto p-6 space-y-4">
+        <button 
+          onClick={onLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-500 hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-200 group font-bold text-xs uppercase tracking-widest"
+        >
+          <LogOut className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <span>TERMINATE</span>
+        </button>
+
         <div className="bg-zinc-900/50 rounded-2xl p-4 flex items-center gap-3 border border-zinc-800/50 group cursor-pointer hover:border-zinc-700 transition-all">
           <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 group-hover:border-brand transition-colors">
             <UserIcon className="w-5 h-5 text-zinc-400" />

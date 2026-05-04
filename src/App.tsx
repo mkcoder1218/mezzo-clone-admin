@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { 
   Shield, 
@@ -16,23 +16,47 @@ import {
 } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { TopNav } from "./components/TopNav";
+import { LoginPage } from "./components/LoginPage";
 import { DashboardPage } from "./components/Dashboard";
 import { UserManagementPage } from "./components/UserManagement";
 import { BetManagementPage } from "./components/BetManagement";
 import { ShopManagementPage } from "./components/ShopManagement";
-import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { Button } from "@/components/ui/button";
 
 export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>("SUPER_ADMIN");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const session = localStorage.getItem("mezzobet_session");
+    if (session) {
+      setIsAuthenticated(true);
+      setCurrentRole(session as UserRole);
+    }
+  }, []);
+
+  const handleLogin = (role: UserRole) => {
+    setIsAuthenticated(true);
+    setCurrentRole(role);
+    localStorage.setItem("mezzobet_session", role);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("mezzobet_session");
+  };
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <Router>
       <div className="flex min-h-screen bg-[#0A0A0A] selection:bg-brand selection:text-black">
-        <Sidebar currentRole={currentRole} />
+        <Sidebar currentRole={currentRole} onLogout={handleLogout} />
         
         <main className="flex-1 flex flex-col min-w-0">
-          <TopNav currentRole={currentRole} setCurrentRole={setCurrentRole} />
+          <TopNav currentRole={currentRole} setCurrentRole={setCurrentRole} onLogout={handleLogout} />
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
@@ -50,12 +74,6 @@ export default function App() {
                     <Route path="/users" element={<UserManagementPage role={currentRole} />} />
                     <Route path="/shops" element={<ShopManagementPage role={currentRole} />} />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
-                    <Route
-                      path="/data-fetching"
-                      element={currentRole === "SUPER_ADMIN" ? <DataFetchingPage /> : (
-                        <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
-                      )}
-                    />
                     
                     {/* Placeholder Views */}
                     <Route path="/agents" element={
