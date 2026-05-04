@@ -20,6 +20,7 @@ import { DashboardPage } from "./components/Dashboard";
 import { UserManagementPage } from "./components/UserManagement";
 import { BetManagementPage } from "./components/BetManagement";
 import { ShopManagementPage } from "./components/ShopManagement";
+import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { Button } from "@/components/ui/button";
 
 export default function App() {
@@ -49,6 +50,12 @@ export default function App() {
                     <Route path="/users" element={<UserManagementPage role={currentRole} />} />
                     <Route path="/shops" element={<ShopManagementPage role={currentRole} />} />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
+                    <Route
+                      path="/data-fetching"
+                      element={currentRole === "SUPER_ADMIN" ? <DataFetchingPage /> : (
+                        <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      )}
+                    />
                     
                     {/* Placeholder Views */}
                     <Route path="/agents" element={
