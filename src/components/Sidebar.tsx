@@ -7,6 +7,7 @@ import {
   Shield, 
   Settings, 
   Database,
+  Wallet,
   User as UserIcon,
   Target,
   LogOut
@@ -19,11 +20,14 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
   const menuItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Users", path: "/users", icon: Users, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
-    { name: "Agents", path: "/agents", icon: Shield, roles: ["SUPER_ADMIN"] },
+    { name: "Agents", path: "/agents", icon: Shield, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
+    { name: "Staff", path: "/staff", icon: Users, roles: ["SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
     { name: "Shops", path: "/shops", icon: Store, roles: ["SUPER_ADMIN", "AGENT"] },
     { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT"] }, // Using LayoutDashboard as placeholder icon
     { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
+    { name: "Limits", path: "/limits", icon: Wallet, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
+    { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
     { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
   ];
 

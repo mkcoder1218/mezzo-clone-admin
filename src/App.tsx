@@ -21,6 +21,10 @@ import { DashboardPage } from "./components/Dashboard";
 import { UserManagementPage } from "./components/UserManagement";
 import { BetManagementPage } from "./components/BetManagement";
 import { ShopManagementPage } from "./components/ShopManagement";
+import { AgentsPage } from "./components/AgentsPage";
+import { RolesPage } from "./components/RolesPage";
+import { LimitsPage } from "./components/LimitsPage";
+import { StaffPage } from "./components/StaffPage";
 import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
@@ -45,6 +49,7 @@ export default function App() {
 
         const roleMap: Record<string, UserRole> = {
           super_admin: "SUPER_ADMIN",
+          super_agent: "SUPER_AGENT",
           agent: "AGENT",
           shop_owner: "SHOP_OWNER"
         };
@@ -122,6 +127,16 @@ export default function App() {
                     <Route path="/" element={<DashboardPage role={currentRole} />} />
                     <Route path="/users" element={<UserManagementPage role={currentRole} />} />
                     <Route path="/shops" element={<ShopManagementPage role={currentRole} />} />
+                    <Route
+                      path="/staff"
+                      element={
+                        currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                          <StaffPage role={currentRole} />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
                     <Route
                       path="/data-fetching"
@@ -134,15 +149,45 @@ export default function App() {
                       }
                     />
                     
-                    {/* Placeholder Views */}
-                    <Route path="/agents" element={
-                      <div className="flex flex-col items-center justify-center p-20 text-center bg-[#1A1A1A] rounded-3xl border border-zinc-800/50 shadow-2xl">
-                          <Shield className="w-20 h-20 text-brand/30 mb-8 animate-pulse" />
-                          <h2 className="text-3xl font-display font-bold text-white mb-4 uppercase italic">Agent <span className="text-brand">Protocol</span></h2>
-                          <p className="text-zinc-500 max-w-lg text-lg">Detailed agent level hierarchical management is currently being migrated to the new core engine. Please use the User Registry to manage agent accounts.</p>
-                          <Button className="mt-10 bg-zinc-900 border border-zinc-800 text-white hover:bg-zinc-800 rounded-xl px-10 h-14 font-bold uppercase tracking-widest text-xs">VIEW SYSTEM STATUS</Button>
-                      </div>
-                    } />
+                    <Route
+                      path="/agents"
+                      element={
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" ? (
+                          <AgentsPage role={currentRole} />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
+
+                    <Route
+                      path="/roles"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <RolesPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>
+                      }
+                    />
+
+                    <Route
+                      path="/limits"
+                      element={
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                          <LimitsPage role={currentRole} />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
+
+                    <Route
+                      path="/staff"
+                      element={
+                        currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                          <StaffPage role={currentRole} />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
 
                     <Route path="*" element={
                       <div className="flex flex-col items-center justify-center p-32 text-center">

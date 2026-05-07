@@ -3,7 +3,7 @@ import type { LoginResponse } from "./types";
 import type { UserRole } from "../../types";
 
 export const authApi = {
-  login: (payload: { email: string; password: string }) =>
+  login: (payload: { email?: string; phoneNumber?: string; password: string }) =>
     apiRequest<LoginResponse>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(payload)

@@ -15,21 +15,28 @@ import {
 import type { ParsedGame } from "./types";
 
 function parseGames(snapshot: any): ParsedGame[] {
-  const competitions = snapshot?.responseBody?.[0]?.data?.mainEventList?.competitions || [];
-  const sportName = snapshot?.responseBody?.[0]?.data?.mainEventList?.sportName || "Unknown";
+  const rawMainEventList = snapshot?.responseBody?.[0]?.data?.mainEventList;
+  if (!rawMainEventList) return [];
 
+  const mainEventLists = Array.isArray(rawMainEventList) ? rawMainEventList : [rawMainEventList];
   const out: ParsedGame[] = [];
-  for (const competition of competitions) {
-    for (const event of competition.events || []) {
-      const marketsCount = (event.collections || []).reduce((n: number, c: any) => n + (c.markets?.length || 0), 0);
-      out.push({
-        eventId: String(event.eventId),
-        eventName: event.eventName,
-        eventStartTime: event.eventStartTime,
-        competitionName: competition.competitionName,
-        sportName,
-        marketsCount
-      });
+
+  for (const mainEventList of mainEventLists) {
+    const sportName = mainEventList.sportName || "Unknown";
+    const competitions = mainEventList.competitions || [];
+
+    for (const competition of competitions) {
+      for (const event of competition.events || []) {
+        const marketsCount = (event.collections || []).reduce((n: number, c: any) => n + (c.markets?.length || 0), 0);
+        out.push({
+          eventId: String(event.eventId),
+          eventName: event.eventName,
+          eventStartTime: event.eventStartTime,
+          competitionName: competition.competitionName,
+          sportName,
+          marketsCount
+        });
+      }
     }
   }
   return out;

@@ -13,7 +13,7 @@ type AuthUser = {
 type AuthContextType = {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (payload: { email: string; password: string }) => Promise<void>;
+  login: (payload: { identifier: string; password: string }) => Promise<void>;
   logout: () => void;
 };
 
@@ -21,6 +21,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 function mapRole(role: BackendRole): UserRole | null {
   if (role === "super_admin") return "SUPER_ADMIN";
+  if (role === "super_agent") return "SUPER_AGENT";
   if (role === "agent") return "AGENT";
   if (role === "shop_owner") return "SHOP_OWNER";
   return null;
@@ -40,17 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => parseStoredUser());
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = async (payload: { email: string; password: string }) => {
+  const login = async (payload: { identifier: string; password: string }) => {
     setIsLoading(true);
     try {
-      const res = await authApi.login(payload);
+      const identifier = payload.identifier.trim();
+      const body = identifier.includes("@") ? { email: identifier, password: payload.password } : { phoneNumber: identifier, password: payload.password };
+      const res = await authApi.login(body);
       const backendRole = (res.user?.Role?.name || res.user?.role) as BackendRole;
       const uiRole = mapRole(backendRole);
       if (!uiRole) throw new Error("This account is not allowed in admin panel");
 
       const authUser: AuthUser = {
         id: res.user.id,
-        name: res.user.displayName || res.user.email || "Admin",
+        name: res.user.displayName || (res.user as any).phoneNumber || res.user.email || "Admin",
         backendRole,
         uiRole
       };

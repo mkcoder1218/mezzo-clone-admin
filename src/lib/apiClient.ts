@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
+// Backend base URL. Prefer VITE_API_BASE_URL, fall back to the local backend default port.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3006";
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("accessToken");
@@ -21,4 +22,3 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   return res.json();
 }
-

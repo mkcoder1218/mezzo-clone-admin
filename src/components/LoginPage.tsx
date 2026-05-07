@@ -18,21 +18,26 @@ interface LoginPageProps {
 }
 
 export const LoginPage = ({ onLogin }: LoginPageProps) => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!identifier || !password) return;
     setIsAuthenticating(true);
     setError(null);
     try {
-      const res = await authApi.login({ email, password });
+      const trimmed = identifier.trim();
+      const payload = trimmed.includes("@")
+        ? { email: trimmed, password }
+        : { phoneNumber: trimmed, password };
+      const res = await authApi.login(payload);
       const backendRole = res.user?.Role?.name || (res.user as any)?.role;
       const roleMap: Record<string, UserRole> = {
         super_admin: "SUPER_ADMIN",
+        super_agent: "SUPER_AGENT",
         agent: "AGENT",
         shop_owner: "SHOP_OWNER"
       };
@@ -43,7 +48,7 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
 
       localStorage.setItem("accessToken", res.tokens.accessToken);
       if (res.tokens.refreshToken) localStorage.setItem("refreshToken", res.tokens.refreshToken);
-      onLogin(uiRole, res.user?.displayName || res.user?.email || "Admin");
+      onLogin(uiRole, res.user?.displayName || (res.user as any)?.phoneNumber || res.user?.email || "Admin");
     } catch (e: any) {
       setError(e?.message || "Authentication failed");
     } finally {
@@ -91,14 +96,13 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
           >
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Email Address</label>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Email or Phone</label>
                     <div className="relative">
                       <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
                       <Input 
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="operator@mezzobet.io" 
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder="operator@mezzobet.io or 0712345678" 
                         className="bg-zinc-900 border-zinc-800 h-12 pl-12 focus-visible:ring-brand rounded-xl text-white" 
                         required
                       />

@@ -1,6 +1,6 @@
 import { User as UserIcon, Users, Store, Shield, DollarSign, Activity, Settings, LayoutDashboard, Search, Filter, Plus, Trash2, Edit2, ChevronRight, BarChart3, Receipt, Wallet } from "lucide-react";
 
-export type UserRole = "SUPER_ADMIN" | "AGENT" | "SHOP_OWNER" | "CASHIER" | "PUNTER";
+export type UserRole = "SUPER_ADMIN" | "SUPER_AGENT" | "AGENT" | "SHOP_OWNER" | "CASHIER" | "PUNTER";
 
 export interface User {
   id: string;
