@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState, type FC } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Receipt, 
   Search, 
@@ -13,7 +14,8 @@ import {
 import { 
   Bet, 
   UserRole, 
-  MOCK_BETS 
+  MOCK_BETS,
+  MOCK_SHOPS
 } from "../types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { apiRequest } from "../lib/apiClient";
 
 // --- Modular Sub-components ---
 
-const BetFilters = ({ statusFilter, setStatusFilter, typeFilter, setTypeFilter }: { 
+const BetFilters = ({ q, setQ, statusFilter, setStatusFilter, typeFilter, setTypeFilter }: { 
+  q: string,
+  setQ: (v: string) => void,
   statusFilter: string, 
   setStatusFilter: (v: string) => void,
   typeFilter: string,
@@ -45,6 +50,8 @@ const BetFilters = ({ statusFilter, setStatusFilter, typeFilter, setTypeFilter }
     <div className="relative flex-1 w-full font-sans">
       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600" />
       <Input 
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
         className="pl-12 bg-zinc-900 border-zinc-800 focus-visible:ring-brand h-12 text-sm rounded-xl text-white" 
         placeholder="Search by Ticket ID, User ID or Event..." 
       />
@@ -69,7 +76,7 @@ const BetFilters = ({ statusFilter, setStatusFilter, typeFilter, setTypeFilter }
   </div>
 );
 
-const BetCard = ({ bet }: { bet: Bet }) => (
+const BetCard: FC<{ bet: Bet }> = ({ bet }) => (
   <Card key={bet.id} className="bg-[#1A1A1A] border-none shadow-xl overflow-hidden hover:bg-zinc-800/20 transition-all border border-transparent hover:border-zinc-800">
      <CardContent className="p-0">
          <div className="flex flex-col lg:flex-row">
@@ -169,36 +176,72 @@ const AuditFooter = () => (
 // --- Main Page ---
 
 export const BetManagementPage = ({ role }: { role: UserRole }) => {
-  const [bets] = useState<Bet[]>(MOCK_BETS);
+  const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "online" | "shop">("all");
+  const [page, setPage] = useState(1);
+  const limit = 25;
+  const offset = (page - 1) * limit;
 
   const CURRENT_USER_ID = role === "SUPER_ADMIN" ? "u1" : role === "AGENT" ? "a1" : "s1";
 
+  const listQuery = useQuery({
+    queryKey: ["admin-bets", { q, page, statusFilter }],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.set("limit", String(limit));
+      params.set("offset", String(offset));
+      if (q.trim()) params.set("q", q.trim());
+      if (statusFilter !== "all") params.set("result", statusFilter);
+      return apiRequest<{ count: number; rows: any[] }>(`/api/admin/bets?${params.toString()}`);
+    },
+    staleTime: 5_000
+  });
+
+  const total = listQuery.data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
   const filteredBets = useMemo(() => {
-    let result = bets;
+    const rows = listQuery.data?.rows || [];
+    const mapped: Bet[] = rows.map((slip: any) => {
+      const stake = Number(slip.stake || 0);
+      const pot = Number(slip.potentialPayout || 0);
+      const odds = stake > 0 ? pot / stake : 0;
+      const sels = Array.isArray(slip.BetSelections) ? slip.BetSelections : [];
+      const events = sels.slice(0, 3).map((s: any) => {
+        const fx = s?.Outcome?.Market?.Fixture;
+        const name = fx ? `${fx?.homeTeam?.name || ""} vs ${fx?.awayTeam?.name || ""}`.trim() : (s?.Outcome?.name || "Event");
+        return { name, selection: s?.Outcome?.name || "-", odds: Number(s?.oddsAtPlacement || 0) };
+      });
+      return {
+        id: slip.id,
+        userId: slip.userId,
+        shopId: slip.cashierId || undefined,
+        isOnline: !slip.cashierId,
+        amount: stake,
+        potentialPayout: pot,
+        odds,
+        status: (slip.result || "pending") as any,
+        events: events.length ? events : [{ name: "Ticket", selection: "-", odds }],
+        created_at: slip.placedAt || slip.createdAt,
+      };
+    });
 
-    // Role-based filtering
+    let result = mapped;
+    if (typeFilter === "online") result = result.filter((b) => b.isOnline);
+    else if (typeFilter === "shop") result = result.filter((b) => !b.isOnline);
+
+    // Keep legacy mock filtering for AGENT/SHOP_OWNER without breaking layout.
     if (role === "AGENT") {
-      // Agents see bets from shops they manage
-      const agentShopIds = MOCK_SHOPS.filter(s => s.agentId === CURRENT_USER_ID).map(s => s.id);
-      result = result.filter(b => b.shopId && agentShopIds.includes(b.shopId));
+      const agentShopIds = MOCK_SHOPS.filter((s) => s.agentId === CURRENT_USER_ID).map((s) => s.id);
+      result = result.filter((b) => (b.shopId ? agentShopIds.includes(b.shopId) : true));
     } else if (role === "SHOP_OWNER") {
-      // Shop owners see bets from their own shop
-      const ownedShopId = MOCK_SHOPS.find(s => s.ownerId === CURRENT_USER_ID)?.id;
-      result = result.filter(b => b.shopId === ownedShopId);
+      const ownedShopId = MOCK_SHOPS.find((s) => s.ownerId === CURRENT_USER_ID)?.id;
+      result = result.filter((b) => (b.shopId ? b.shopId === ownedShopId : true));
     }
 
-    if (statusFilter !== "all") {
-      result = result.filter(b => b.status === statusFilter);
-    }
-    if (typeFilter === "online") {
-      result = result.filter(b => b.isOnline);
-    } else if (typeFilter === "shop") {
-      result = result.filter(b => !b.isOnline);
-    }
     return result;
-  }, [bets, statusFilter, typeFilter, role, CURRENT_USER_ID]);
+  }, [CURRENT_USER_ID, listQuery.data?.rows, role, typeFilter]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 text-white">
@@ -237,6 +280,11 @@ export const BetManagementPage = ({ role }: { role: UserRole }) => {
       </header>
 
       <BetFilters 
+        q={q}
+        setQ={(v) => {
+          setPage(1);
+          setQ(v);
+        }}
         statusFilter={statusFilter} 
         setStatusFilter={setStatusFilter} 
         typeFilter={typeFilter} 
@@ -244,9 +292,32 @@ export const BetManagementPage = ({ role }: { role: UserRole }) => {
       />
 
       <div className="grid grid-cols-1 gap-6">
-        {filteredBets.map((bet) => (
+        {listQuery.isLoading ? (
+          <div className="text-zinc-500">Loading…</div>
+        ) : (
+          filteredBets.map((bet) => (
           <BetCard key={bet.id} bet={bet} />
-        ))}
+          ))
+        )}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2">
+        <Button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page <= 1}
+          variant="outline"
+          className="border-zinc-800 text-zinc-400 rounded-xl h-11 hover:bg-zinc-800/50 font-bold text-[10px] uppercase"
+        >
+          Prev
+        </Button>
+        <Button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
+          variant="outline"
+          className="border-zinc-800 text-zinc-400 rounded-xl h-11 hover:bg-zinc-800/50 font-bold text-[10px] uppercase"
+        >
+          Next
+        </Button>
       </div>
 
       <AuditFooter />

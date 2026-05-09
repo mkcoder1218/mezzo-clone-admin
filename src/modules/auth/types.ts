@@ -1,4 +1,4 @@
-export type BackendRole = "super_admin" | "agent" | "shop_owner" | "cashier" | "user";
+export type BackendRole = "super_admin" | "super_agent" | "agent" | "shop_owner" | "cashier" | "user";
 
 export type LoginResponse = {
   user: {
@@ -14,4 +14,3 @@ export type LoginResponse = {
     refreshToken?: string;
   };
 };
-

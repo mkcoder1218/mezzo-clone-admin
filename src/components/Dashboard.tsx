@@ -28,7 +28,9 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserRole, MOCK_BETS } from "../types";
+import { UserRole } from "../types";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "../lib/apiClient";
 
 // --- Constants & Data ---
 
@@ -172,7 +174,7 @@ const SystemStatusMonitor = () => (
   </Card>
 );
 
-const RecentTickets = () => (
+const RecentTickets = ({ rows }: { rows: any[] }) => (
   <Card className="bg-[#1A1A1A] border-none shadow-2xl">
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -198,33 +200,41 @@ const RecentTickets = () => (
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-800/50">
-                      {MOCK_BETS.map((bet) => (
-                          <tr key={bet.id} className="hover:bg-zinc-800/20 transition-colors group">
+                      {rows.map((slip: any) => {
+                          const isOnline = !slip.cashierId;
+                          const amount = Number(slip.stake || 0);
+                          const status = String(slip.result || "pending");
+                          const placedAt = slip.placedAt ? new Date(slip.placedAt).toLocaleString() : "-";
+                          const label = String(slip.id).slice(-8).toUpperCase();
+                          return (
+                          <tr key={slip.id} className="hover:bg-zinc-800/20 transition-colors group">
                               <td className="px-6 py-4">
                                   <div className="flex flex-col">
-                                      <span className="text-sm font-bold text-white group-hover:text-brand transition-colors uppercase italic font-display">#{bet.id.toUpperCase()}</span>
-                                      <span className="text-[10px] text-zinc-600 italic">2 mins ago</span>
+                                      <span className="text-sm font-bold text-white group-hover:text-brand transition-colors uppercase italic font-display">#{label}</span>
+                                      <span className="text-[10px] text-zinc-600 italic">{placedAt}</span>
                                   </div>
                               </td>
                               <td className="px-6 py-4">
-                                 {bet.isOnline ? (
+                                 {isOnline ? (
                                      <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[8px] h-4">ONLINE</Badge>
                                  ) : (
                                      <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[8px] h-4">SHOP</Badge>
                                  )}
                               </td>
-                              <td className="px-6 py-4 text-sm font-bold text-white tracking-tighter italic font-display">${bet.amount}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-white tracking-tighter italic font-display">{amount.toFixed(2)}</td>
                               <td className="px-6 py-4 text-right">
                                   <Badge className={`uppercase text-[10px] font-bold ${
-                                      bet.status === 'won' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
-                                      bet.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                      status === 'won' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 
+                                      status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                      status === 'lost' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
                                       'bg-zinc-800 text-zinc-400 border-zinc-700'
                                   }`}>
-                                      {bet.status}
+                                      {status}
                                   </Badge>
                               </td>
                           </tr>
-                      ))}
+                          );
+                      })}
                   </tbody>
               </table>
            </div>
@@ -237,6 +247,20 @@ const RecentTickets = () => (
 export const DashboardPage = ({ role }: { role: UserRole }) => {
   const isSuper = role === "SUPER_ADMIN";
   const isAgent = role === "AGENT";
+
+  const dashboard = useQuery({
+    queryKey: ["admin-dashboard"],
+    queryFn: () => apiRequest<{ metrics: any }>(`/api/admin/dashboard`),
+    staleTime: 10_000
+  });
+
+  const recent = useQuery({
+    queryKey: ["admin-bets-recent"],
+    queryFn: () => apiRequest<{ count: number; rows: any[] }>(`/api/admin/bets?limit=8&offset=0`),
+    staleTime: 5_000
+  });
+
+  const metrics = dashboard.data?.metrics || {};
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -257,14 +281,14 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard title="Gross Volume" value="$1.2M" change="+12.5%" icon={DollarSign} />
-        <MetricCard title="Active Users" value="4,852" change="+3.2%" icon={Users} />
+        <MetricCard title="Gross Volume" value={Number(metrics.stakeSum || 0).toFixed(2)} change="—" icon={DollarSign} />
+        <MetricCard title="Active Users" value={String(metrics.usersCount ?? "—")} change="—" icon={Users} />
         {isSuper || isAgent ? (
           <MetricCard title="Allocated Limit" value="$1.0M" change="+5.4%" icon={Wallet} />
         ) : (
           <MetricCard title="Shop Balance" value="$12,000" change="-1.2%" icon={CreditCard} />
         )}
-        <MetricCard title="Commission" value="$42k" change="+8.1%" icon={Receipt} />
+        <MetricCard title="Tickets" value={String(metrics.slipsCount ?? "—")} change="—" icon={Receipt} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -296,7 +320,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RecentTickets />
+          <RecentTickets rows={recent.data?.rows || []} />
           <SystemStatusMonitor />
       </div>
     </div>

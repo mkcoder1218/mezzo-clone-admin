@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type FC } from "react";
 import { 
   Store, 
   MapPin, 
@@ -41,7 +41,7 @@ import {
 
 // --- Modular Sub-components ---
 
-const ShopCard = ({ shop }: { shop: Shop }) => (
+const ShopCard: FC<{ shop: Shop }> = ({ shop }) => (
   <Card key={shop.id} className="bg-[#1A1A1A] border-none shadow-2xl relative overflow-hidden group">
     <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
         <Store className="w-20 h-20 text-brand" />

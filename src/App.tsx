@@ -18,14 +18,19 @@ import { Sidebar } from "./components/Sidebar";
 import { TopNav } from "./components/TopNav";
 import { LoginPage } from "./components/LoginPage";
 import { DashboardPage } from "./components/Dashboard";
-import { UserManagementPage } from "./components/UserManagement";
+import { UserHierarchyPage } from "./components/UserHierarchyPage";
 import { BetManagementPage } from "./components/BetManagement";
 import { ShopManagementPage } from "./components/ShopManagement";
 import { AgentsPage } from "./components/AgentsPage";
 import { RolesPage } from "./components/RolesPage";
 import { LimitsPage } from "./components/LimitsPage";
 import { StaffPage } from "./components/StaffPage";
+import { ResultsPage } from "./components/ResultsPage";
+import { ReportsPage } from "./components/ReportsPage";
+import { SettingsPage } from "./components/SettingsPage";
 import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
+import { OddsDebugPage } from "./modules/odds-debug/OddsDebugPage";
+import { DebugToolsPage } from "./modules/debug-tools/DebugToolsPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
 
@@ -125,7 +130,7 @@ export default function App() {
                 >
                   <Routes>
                     <Route path="/" element={<DashboardPage role={currentRole} />} />
-                    <Route path="/users" element={<UserManagementPage role={currentRole} />} />
+                    <Route path="/users" element={<UserHierarchyPage role={currentRole} />} />
                     <Route path="/shops" element={<ShopManagementPage role={currentRole} />} />
                     <Route
                       path="/staff"
@@ -138,6 +143,23 @@ export default function App() {
                       }
                     />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
+                    <Route path="/results" element={<ResultsPage />} />
+                    <Route
+                      path="/reports"
+                      element={
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                          <ReportsPage />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <SettingsPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>
+                      }
+                    />
                     <Route
                       path="/data-fetching"
                       element={
@@ -146,6 +168,18 @@ export default function App() {
                         ) : (
                           <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                         )
+                      }
+                    />
+                    <Route
+                      path="/debug-tools/*"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <DebugToolsPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-debug/*"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <OddsDebugPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                       }
                     />
                     
