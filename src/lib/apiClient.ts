@@ -1,5 +1,7 @@
-// Backend base URL. Prefer VITE_API_BASE_URL, fall back to the local backend default port.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3006";
+// Backend base URL.
+// - If `VITE_API_BASE_URL` is unset, use same-origin requests (prevents HTTPS->HTTP mixed-content blocks).
+// - For local dev, set `VITE_API_BASE_URL=http://localhost:3006` (or your VPS origin).
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
 export class ApiClientError extends Error {
   status: number;
