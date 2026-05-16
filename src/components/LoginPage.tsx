@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { 
   Shield, 
   Lock, 
-  Phone,
+  User,
   ChevronRight,
   Cpu,
   Globe
@@ -17,19 +17,19 @@ interface LoginPageProps {
 }
 
 export const LoginPage = ({ onLogin }: LoginPageProps) => {
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber || !password) return;
+    if (!identifier || !password) return;
     setIsAuthenticating(true);
     setError(null);
     try {
-      const fullPhone = phoneNumber.startsWith("+") ? phoneNumber : `+251${phoneNumber.replace(/^0+/, "")}`;
-      const res = await authApi.login({ phoneNumber: fullPhone, password });
+      // Backend expects 'phoneNumber' as the credential key even for email/identifier logins
+      const res = await authApi.login({ phoneNumber: identifier, password });
       const backendRole = res.user?.Role?.name || (res.user as any)?.role;
       const roleMap: Record<string, UserRole> = {
         super_admin: "SUPER_ADMIN",
@@ -39,12 +39,12 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
       };
       const uiRole = roleMap[backendRole];
       if (!uiRole) {
-        throw new Error("Access denied: only super admin, agent, and shop owner can login here");
+        throw new Error("Access denied: insufficient permissions");
       }
 
       localStorage.setItem("accessToken", res.tokens.accessToken);
       if (res.tokens.refreshToken) localStorage.setItem("refreshToken", res.tokens.refreshToken);
-      onLogin(uiRole, res.user?.displayName || (res.user as any)?.phoneNumber || res.user?.email || "Admin");
+      onLogin(uiRole, res.user?.displayName || identifier || "Admin");
     } catch (e: any) {
       setError(e?.message || "Authentication failed");
     } finally {
@@ -74,7 +74,7 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
             <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center shadow-[0_0_30px_rgba(204,255,0,0.4)] mb-4">
               <Shield className="text-black w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-display font-bold text-white tracking-tight uppercase italic italic text-center">
+            <h1 className="text-3xl font-display font-bold text-white tracking-tight uppercase italic text-center">
               KINGS<span className="text-brand">BET</span>
             </h1>
             <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-[0.2em] mt-2">Node Admin Authentication</p>
@@ -88,22 +88,17 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
           >
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Phone Number (Ethiopia)</label>
-                    <div className="flex gap-2">
-                        <div className="bg-zinc-900 border border-zinc-800 text-brand px-4 flex items-center justify-center rounded-xl font-black text-sm shadow-inner min-w-[70px]">
-                          +251
-                        </div>
-                        <div className="relative flex-1">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
-                          <input 
-                            type="tel"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                            placeholder="911234567" 
-                            className="w-full bg-zinc-900 border border-zinc-800 h-12 pl-12 pr-4 focus:outline-none focus:border-brand rounded-xl text-white font-bold" 
-                            required
-                          />
-                        </div>
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Email or Phone Number</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                      <input 
+                        type="text"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder="Enter your credential" 
+                        className="w-full bg-zinc-900 border border-zinc-800 h-12 pl-12 pr-4 focus:outline-none focus:border-brand rounded-xl text-white font-bold transition-all" 
+                        required
+                      />
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -115,7 +110,7 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••••••" 
-                        className="w-full bg-zinc-900 border border-zinc-800 h-12 pl-12 pr-4 focus:outline-none focus:border-brand rounded-xl text-white font-bold" 
+                        className="w-full bg-zinc-900 border border-zinc-800 h-12 pl-12 pr-4 focus:outline-none focus:border-brand rounded-xl text-white font-bold transition-all" 
                         required
                       />
                     </div>

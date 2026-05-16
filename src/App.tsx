@@ -20,6 +20,11 @@ import { LoginPage } from "./components/LoginPage";
 import { DashboardPage } from "./components/Dashboard";
 import { UserHierarchyPage } from "./components/UserHierarchyPage";
 import { BetManagementPage } from "./components/BetManagement";
+import { RedeemTicketsPage } from "./components/RedeemTicketsPage";
+import { CashbackConfigPage } from "./components/CashbackConfigPage";
+import { ResultsRunNowPage } from "./components/ResultsRunNowPage";
+import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
+import { ApiFootballEventsLookupPage } from "./components/ApiFootballEventsLookupPage";
 import { ShopManagementPage } from "./components/ShopManagement";
 import { AgentsPage } from "./components/AgentsPage";
 import { RolesPage } from "./components/RolesPage";
@@ -36,6 +41,7 @@ import { OddsSettingsPage } from "./modules/odds-management/OddsSettingsPage";
 import { ApiFootballLeaguesPage } from "./modules/odds-management/ApiFootballLeaguesPage";
 import { ApiFootballFixturesPage } from "./modules/odds-management/ApiFootballFixturesPage";
 import { ApiFootballFixtureDetailPage } from "./modules/odds-management/ApiFootballFixtureDetailPage";
+import { MezzoLeagueMappingPage } from "./modules/odds-management/MezzoLeagueMappingPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
 
@@ -148,6 +154,11 @@ export default function App() {
                       }
                     />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
+                    <Route path="/redeem" element={<RedeemTicketsPage />} />
+                    <Route path="/cashback-config" element={<CashbackConfigPage />} />
+                    <Route path="/results-run-now" element={<ResultsRunNowPage />} />
+                    <Route path="/results-diagnostics" element={<ResultsDiagnosticsPage />} />
+                    <Route path="/apifootball-events" element={<ApiFootballEventsLookupPage />} />
                     <Route path="/results" element={<ResultsPage />} />
                     <Route
                       path="/reports"
@@ -215,6 +226,12 @@ export default function App() {
                       path="/odds-management/settings"
                       element={
                         currentRole === "SUPER_ADMIN" ? <OddsSettingsPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-management/mezzo-league-mapping"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <MezzoLeagueMappingPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                       }
                     />
                     

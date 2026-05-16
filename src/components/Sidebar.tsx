@@ -5,6 +5,7 @@ import {
   Store, 
   Receipt, 
   ListChecks,
+  CheckCircle2,
   Shield, 
   Settings, 
   Database,
@@ -22,31 +23,27 @@ import { useMemo, useState } from "react";
 export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: UserRole, onLogout: () => void, displayName?: string }) => {
   const location = useLocation();
   const [oddsExpanded, setOddsExpanded] = useState(true);
+  const [opsExpanded, setOpsExpanded] = useState(true);
+  const [adminExpanded, setAdminExpanded] = useState(true);
   
-  const menuItems = [
+  const topItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Users", path: "/users", icon: Users, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Agents", path: "/agents", icon: Shield, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
     { name: "Staff", path: "/staff", icon: Users, roles: ["SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
     { name: "Shops", path: "/shops", icon: Store, roles: ["SUPER_ADMIN", "AGENT"] },
-    { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
-    { name: "Results", path: "/results", icon: ListChecks, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
-    { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT"] }, // Using LayoutDashboard as placeholder icon
-    { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
-    { name: "Debug Tools", path: "/debug-tools", icon: Wrench, roles: ["SUPER_ADMIN"] },
     { name: "Limits", path: "/limits", icon: Wallet, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
-    { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
-    { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
-    { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
   ];
 
-  const filteredItems = menuItems.filter(item => item.roles.includes(currentRole));
+  const filteredTopItems = topItems.filter(item => item.roles.includes(currentRole));
 
   const oddsItems = useMemo(
     () =>
       [
+        { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
         { name: "Odds Settings", path: "/odds-management/settings", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Leagues", path: "/odds-management/apifootball-leagues", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "Mezzo League Mapping", path: "/odds-management/mezzo-league-mapping", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Fixtures", path: "/odds-management/apifootball-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
         { name: "Odds Debug", path: "/odds-debug", icon: Bug, roles: ["SUPER_ADMIN"] },
       ].filter((i) => i.roles.includes(currentRole)),
@@ -55,20 +52,49 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
 
   const oddsActive = oddsItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
 
+  const opsItems = useMemo(
+    () =>
+      [
+        { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
+        { name: "Redeem", path: "/redeem", icon: CheckCircle2, roles: ["SUPER_ADMIN"] },
+        { name: "Results", path: "/results", icon: ListChecks, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
+        { name: "Results Run Now", path: "/results-run-now", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "Results Diagnostics", path: "/results-diagnostics", icon: Bug, roles: ["SUPER_ADMIN"] },
+        { name: "APIfootball Events", path: "/apifootball-events", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
+      ].filter((i) => i.roles.includes(currentRole)),
+    [currentRole]
+  );
+  const opsActive = opsItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
+
+  const adminItems = useMemo(
+    () =>
+      [
+        { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
+        { name: "Cashback Config", path: "/cashback-config", icon: Target, roles: ["SUPER_ADMIN"] },
+        { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
+        { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
+        { name: "Debug Tools", path: "/debug-tools", icon: Wrench, roles: ["SUPER_ADMIN"] },
+      ].filter((i) => i.roles.includes(currentRole)),
+    [currentRole]
+  );
+  const adminActive = adminItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
+
   return (
-    <div className="w-64 bg-[#0A0A0A] border-r border-zinc-800/50 flex flex-col h-screen sticky top-0 shrink-0">
-      <div className="p-6">
+    <div className="w-64 bg-[#0A0A0A] border-r border-zinc-800 flex flex-col h-screen sticky top-0 shrink-0 shadow-xl z-50">
+      <div className="p-6 shrink-0">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)]">
+          <div className="w-8 h-8 rounded-lg bg-lime-400 flex items-center justify-center shadow-[0_0_15px_rgba(163,230,53,0.3)]">
             <Target className="text-black w-5 h-5" />
           </div>
-          <span className="text-xl font-bold font-display tracking-tight text-white italic">
-            KINGS<span className="text-brand">BET</span>
+          <span className="text-xl font-bold font-sans tracking-tight text-white italic">
+            KINGS<span className="text-lime-400">BET</span>
           </span>
         </div>
+      </div>
 
-        <nav className="space-y-1">
-          {filteredItems.map((item) => {
+      <nav className="flex-1 overflow-y-auto px-4 py-2 space-y-1 custom-scrollbar">
+          {filteredTopItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link 
@@ -76,7 +102,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
                 to={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                   isActive 
-                    ? "bg-brand text-black font-bold shadow-[0_0_20_px_rgba(204,255,0,0.2)]" 
+                    ? "bg-lime-400 text-black font-bold shadow-[0_0_20px_rgba(163,230,53,0.2)]" 
                     : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
@@ -86,13 +112,49 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
             );
           })}
 
+          {opsItems.length ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setOpsExpanded((v) => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  opsActive ? "bg-lime-400/10 text-lime-400" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+              >
+                <Receipt className="w-5 h-5" />
+                <span className="flex-1 text-left font-bold">Operations</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${opsExpanded ? "rotate-180" : ""}`} />
+              </button>
+
+              {opsExpanded ? (
+                <div className="mt-1 ml-3 pl-3 border-l border-zinc-800/70 space-y-1">
+                  {opsItems.map((item) => {
+                    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                          isActive ? "bg-lime-400 text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="text-[13px]">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
           {oddsItems.length ? (
             <div className="pt-2">
               <button
                 type="button"
                 onClick={() => setOddsExpanded((v) => !v)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                  oddsActive ? "bg-brand/10 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                  oddsActive ? "bg-lime-400/10 text-lime-400" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                 }`}
               >
                 <Target className="w-5 h-5" />
@@ -109,7 +171,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
                         key={item.path}
                         to={item.path}
                         className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                          isActive ? "bg-brand text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                          isActive ? "bg-lime-400 text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                         }`}
                       >
                         <item.icon className="w-4 h-4" />
@@ -121,10 +183,45 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
               ) : null}
             </div>
           ) : null}
-        </nav>
-      </div>
 
-      <div className="mt-auto p-6 space-y-4">
+          {adminItems.length ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setAdminExpanded((v) => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  adminActive ? "bg-lime-400/10 text-lime-400" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+              >
+                <Settings className="w-5 h-5" />
+                <span className="flex-1 text-left font-bold">Admin</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${adminExpanded ? "rotate-180" : ""}`} />
+              </button>
+
+              {adminExpanded ? (
+                <div className="mt-1 ml-3 pl-3 border-l border-zinc-800/70 space-y-1">
+                  {adminItems.map((item) => {
+                    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                          isActive ? "bg-lime-400 text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="text-[13px]">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+      </nav>
+
+      <div className="mt-auto p-4 shrink-0 space-y-4 border-t border-zinc-800">
         <button 
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-500 hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-200 group font-bold text-xs uppercase tracking-widest"
@@ -133,8 +230,8 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
           <span>TERMINATE</span>
         </button>
 
-        <div className="bg-zinc-900/50 rounded-2xl p-4 flex items-center gap-3 border border-zinc-800/50 group cursor-pointer hover:border-zinc-700 transition-all">
-          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 group-hover:border-brand transition-colors">
+        <div className="bg-zinc-900 rounded-2xl p-4 flex items-center gap-3 border border-zinc-800 group cursor-pointer hover:border-zinc-700 transition-all">
+          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700 group-hover:border-lime-400 transition-colors">
             <UserIcon className="w-5 h-5 text-zinc-400" />
           </div>
           <div className="flex-1 min-w-0">

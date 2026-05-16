@@ -17,6 +17,17 @@ export class ApiClientError extends Error {
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("accessToken");
+  const inputBody: any = (options as any).body;
+  const shouldJsonEncodeBody =
+    inputBody != null &&
+    typeof inputBody === "object" &&
+    !(inputBody instanceof FormData) &&
+    !(inputBody instanceof URLSearchParams) &&
+    !(inputBody instanceof Blob) &&
+    !(inputBody instanceof ArrayBuffer);
+
+  const body = shouldJsonEncodeBody ? JSON.stringify(inputBody) : (options.body as any);
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string> || {})
@@ -26,6 +37,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
+    body,
     headers
   });
 
