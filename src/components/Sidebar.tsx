@@ -13,12 +13,15 @@ import {
   Wallet,
   User as UserIcon,
   Target,
+  ChevronDown,
   LogOut
 } from "lucide-react";
 import { UserRole } from "../types";
+import { useMemo, useState } from "react";
 
 export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: UserRole, onLogout: () => void, displayName?: string }) => {
   const location = useLocation();
+  const [oddsExpanded, setOddsExpanded] = useState(true);
   
   const menuItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
@@ -31,13 +34,26 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
     { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT"] }, // Using LayoutDashboard as placeholder icon
     { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
     { name: "Debug Tools", path: "/debug-tools", icon: Wrench, roles: ["SUPER_ADMIN"] },
-    { name: "Odds Debug", path: "/odds-debug", icon: Bug, roles: ["SUPER_ADMIN"] },
     { name: "Limits", path: "/limits", icon: Wallet, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
     { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
+    { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
     { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
   ];
 
   const filteredItems = menuItems.filter(item => item.roles.includes(currentRole));
+
+  const oddsItems = useMemo(
+    () =>
+      [
+        { name: "Odds Settings", path: "/odds-management/settings", icon: Target, roles: ["SUPER_ADMIN"] },
+        { name: "APIfootball Leagues", path: "/odds-management/apifootball-leagues", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "APIfootball Fixtures", path: "/odds-management/apifootball-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
+        { name: "Odds Debug", path: "/odds-debug", icon: Bug, roles: ["SUPER_ADMIN"] },
+      ].filter((i) => i.roles.includes(currentRole)),
+    [currentRole]
+  );
+
+  const oddsActive = oddsItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
 
   return (
     <div className="w-64 bg-[#0A0A0A] border-r border-zinc-800/50 flex flex-col h-screen sticky top-0 shrink-0">
@@ -47,7 +63,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
             <Target className="text-black w-5 h-5" />
           </div>
           <span className="text-xl font-bold font-display tracking-tight text-white italic">
-            MEZZO<span className="text-brand">BET</span>
+            KINGS<span className="text-brand">BET</span>
           </span>
         </div>
 
@@ -69,6 +85,42 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
               </Link>
             );
           })}
+
+          {oddsItems.length ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setOddsExpanded((v) => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  oddsActive ? "bg-brand/10 text-white" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+              >
+                <Target className="w-5 h-5" />
+                <span className="flex-1 text-left font-bold">Odds</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${oddsExpanded ? "rotate-180" : ""}`} />
+              </button>
+
+              {oddsExpanded ? (
+                <div className="mt-1 ml-3 pl-3 border-l border-zinc-800/70 space-y-1">
+                  {oddsItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                          isActive ? "bg-brand text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="text-[13px]">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </nav>
       </div>
 

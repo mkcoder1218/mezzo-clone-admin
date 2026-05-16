@@ -97,7 +97,7 @@ export function ResultsPage() {
             <span>Cashbox Sync</span>
             <Badge className="bg-zinc-700">SPORTS</Badge>
           </CardTitle>
-          <CardDescription>Uses `https://cashbox.mezzo.bet/api/other/getStatistics`.</CardDescription>
+          <CardDescription>Uses `https://cashbox.kingsbet.com/api/other/getStatistics`.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-wrap items-end gap-3">

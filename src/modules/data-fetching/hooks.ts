@@ -10,7 +10,11 @@ export function useCatalogStatus() {
 }
 
 export function useOddsLatest() {
-  return useQuery({ queryKey: ["odds-latest"], queryFn: dataFetchingApi.oddsLatest, refetchOnWindowFocus: false });
+  return useQuery({
+    queryKey: ["odds-latest", 501],
+    queryFn: () => dataFetchingApi.oddsLatest(501),
+    refetchOnWindowFocus: false,
+  });
 }
 
 export function useCatalogLatest() {
@@ -36,7 +40,7 @@ export function useCatalogSetEnabled() {
 export function useOddsFetchNow() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: dataFetchingApi.oddsFetchNow,
+    mutationFn: (sportId: number) => dataFetchingApi.oddsFetchNow(sportId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["odds-status"] });
       qc.invalidateQueries({ queryKey: ["odds-latest"] });
@@ -85,5 +89,33 @@ export function useAdminSaveOddsSettings() {
 export function useAdminRepairResultsFixtureMapping() {
   return useMutation({
     mutationFn: ({ eventId, apply }: { eventId: number; apply?: boolean }) => dataFetchingApi.adminRepairResultsFixtureMapping(eventId, apply !== false),
+  });
+}
+
+export function useAdminOddsFetchAdvanced() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { sportId: number; from?: string; to?: string; autoBackfillMapping?: boolean }) =>
+      dataFetchingApi.oddsFetchNowWithParams(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["odds-status"] });
+      qc.invalidateQueries({ queryKey: ["odds-latest"] });
+    }
+  });
+}
+
+export function useAdminMezzoFetchNow() {
+  return useMutation({
+    mutationFn: (sportId: number) => dataFetchingApi.mezzoFetchNow(sportId),
+  });
+}
+
+export function useAdminApiFootballSyncFixtures() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { from: string; to: string; leagueIds?: string[] }) => dataFetchingApi.apifootballSyncFixtures(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["odds-latest"] });
+    }
   });
 }

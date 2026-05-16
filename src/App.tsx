@@ -28,9 +28,14 @@ import { StaffPage } from "./components/StaffPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { SettingsPage } from "./components/SettingsPage";
+import { BannersPage } from "./components/BannersPage";
 import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { OddsDebugPage } from "./modules/odds-debug/OddsDebugPage";
 import { DebugToolsPage } from "./modules/debug-tools/DebugToolsPage";
+import { OddsSettingsPage } from "./modules/odds-management/OddsSettingsPage";
+import { ApiFootballLeaguesPage } from "./modules/odds-management/ApiFootballLeaguesPage";
+import { ApiFootballFixturesPage } from "./modules/odds-management/ApiFootballFixturesPage";
+import { ApiFootballFixtureDetailPage } from "./modules/odds-management/ApiFootballFixtureDetailPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
 
@@ -64,7 +69,7 @@ export default function App() {
           // Token exists but not allowed for admin.
           localStorage.removeItem("accessToken");
           localStorage.removeItem("refreshToken");
-          localStorage.removeItem("mezzobet_session");
+          localStorage.removeItem("kingsbet_session");
           setIsAuthenticated(false);
           setBooting(false);
           return;
@@ -73,12 +78,12 @@ export default function App() {
         setIsAuthenticated(true);
         setCurrentRole(uiRole);
         setDisplayName(me.user.displayName || me.user.email || "Operator");
-        localStorage.setItem("mezzobet_session", JSON.stringify({ role: uiRole, displayName: me.user.displayName || me.user.email || "Operator" }));
+        localStorage.setItem("kingsbet_session", JSON.stringify({ role: uiRole, displayName: me.user.displayName || me.user.email || "Operator" }));
       } catch {
         // Invalid token or API not reachable
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        localStorage.removeItem("mezzobet_session");
+        localStorage.removeItem("kingsbet_session");
         setIsAuthenticated(false);
       } finally {
         setBooting(false);
@@ -90,13 +95,13 @@ export default function App() {
     setIsAuthenticated(true);
     setCurrentRole(role);
     setDisplayName(name);
-    localStorage.setItem("mezzobet_session", JSON.stringify({ role, displayName: name }));
+    localStorage.setItem("kingsbet_session", JSON.stringify({ role, displayName: name }));
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setDisplayName("Operator");
-    localStorage.removeItem("mezzobet_session");
+    localStorage.removeItem("kingsbet_session");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   };
@@ -161,6 +166,12 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/banners"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <BannersPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>
+                      }
+                    />
+                    <Route
                       path="/data-fetching"
                       element={
                         currentRole === "SUPER_ADMIN" ? (
@@ -180,6 +191,30 @@ export default function App() {
                       path="/odds-debug/*"
                       element={
                         currentRole === "SUPER_ADMIN" ? <OddsDebugPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-management/apifootball-leagues"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <ApiFootballLeaguesPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-management/apifootball-fixtures"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <ApiFootballFixturesPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-management/apifootball-fixtures/:id"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <ApiFootballFixtureDetailPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/odds-management/settings"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <OddsSettingsPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                       }
                     />
                     

@@ -49,7 +49,7 @@ export const MOCK_USERS: User[] = [
   {
     id: "u1",
     username: "super_admin",
-    email: "super@mezzobet.com",
+    email: "super@kingsbet.com",
     role: "SUPER_ADMIN",
     balance: 0,
     creditLimit: 99999999,
@@ -60,7 +60,7 @@ export const MOCK_USERS: User[] = [
   {
     id: "a1",
     username: "agent_alpha",
-    email: "agent@mezzobet.com",
+    email: "agent@kingsbet.com",
     role: "AGENT",
     balance: 0,
     creditLimit: 1000000,
@@ -72,7 +72,7 @@ export const MOCK_USERS: User[] = [
   {
     id: "s1",
     username: "shop_owner_1",
-    email: "shop1@mezzobet.com",
+    email: "shop1@kingsbet.com",
     role: "SHOP_OWNER",
     balance: 0,
     creditLimit: 200000,
@@ -86,7 +86,7 @@ export const MOCK_USERS: User[] = [
   {
     id: "c1",
     username: "cashier_1",
-    email: "cash1@mezzobet.com",
+    email: "cash1@kingsbet.com",
     role: "CASHIER",
     balance: 10000,
     creditLimit: 0,

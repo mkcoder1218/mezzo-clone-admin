@@ -19,14 +19,48 @@ import {
   useOddsFetchNow,
   useOddsLatest,
   useOddsSetEnabled,
-  useOddsStatus
+  useOddsStatus,
+  useAdminOddsFetchAdvanced,
+  useAdminApiFootballSyncFixtures,
+  useAdminMezzoFetchNow
 } from "./hooks";
 import type { ParsedGame } from "./types";
 import { apiRequest } from "../../lib/apiClient";
 import { useEffect, useMemo, useState } from "react";
+import { Calendar, CheckCircle2, AlertTriangle, Info } from "lucide-react";
 
 function parseGames(snapshot: any): ParsedGame[] {
-  const rawMainEventList = snapshot?.responseBody?.[0]?.data?.mainEventList;
+  const responseBody = snapshot?.responseBody;
+  if (!responseBody) return [];
+
+  // Handle APIfootball flat array of rows
+  if (Array.isArray(responseBody)) {
+    // APIfootball odds rows don't always have event names/leagues, 
+    // but they often include them in the same row or we have match_id.
+    // For the "Latest Snapshot" view, we show what came from the wire.
+    return responseBody.slice(0, 100).map((row: any) => {
+      const matchId = String(row.match_id || "");
+      // We don't always have names in the odds row, but let's try to find common fields
+      const home = row.match_hometeam_name || "Match ID: " + matchId;
+      const away = row.match_awayteam_name || "";
+      const league = row.league_name || row.match_league || "N/A";
+      
+      // Count non-empty odd_ fields
+      const marketsCount = Object.keys(row).filter(k => k.startsWith("odd_") && row[k]).length;
+
+      return {
+        eventId: matchId,
+        eventName: away ? `${home} V ${away}` : home,
+        eventStartTime: row.match_date ? `${row.match_date} ${row.match_time || ""}` : "N/A",
+        competitionName: league,
+        sportName: "Football",
+        marketsCount
+      };
+    });
+  }
+
+  // Fallback to legacy structure (e.g. Mezzo GraphQL)
+  const rawMainEventList = responseBody?.[0]?.data?.mainEventList;
   if (!rawMainEventList) return [];
 
   const mainEventLists = Array.isArray(rawMainEventList) ? rawMainEventList : [rawMainEventList];
@@ -52,6 +86,7 @@ function parseGames(snapshot: any): ParsedGame[] {
   }
   return out;
 }
+
 
 function parseTopLeagues(snapshot: any): Array<{ competitionName: string; country?: string | null; priority?: number | null; eventsCount?: number | null }> {
   const top = snapshot?.responseBody?.[0]?.data?.topLeagueList;
@@ -152,6 +187,21 @@ export function DataFetchingPage() {
   const saveOddsSettings = useAdminSaveOddsSettings();
   const repairResultsMapping = useAdminRepairResultsFixtureMapping();
 
+  const syncFixtures = useAdminApiFootballSyncFixtures();
+  const fetchOddsAdvanced = useAdminOddsFetchAdvanced();
+
+  const [syncFrom, setSyncFrom] = useState(() => {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  });
+  const [syncTo, setSyncTo] = useState(() => {
+    const d = new Date(Date.now() + 7 * 86400000);
+    return d.toISOString().slice(0, 10);
+  });
+
+  const [lastSyncResult, setLastSyncResult] = useState<any>(null);
+  const [lastFetchResult, setLastFetchResult] = useState<any>(null);
+
   const defaults = oddsSettings.data?.data?.defaults || null;
   const current = oddsSettings.data?.data?.value || null;
   const [cfgForm, setCfgForm] = useState({
@@ -178,6 +228,8 @@ export function DataFetchingPage() {
   const catalogToggle = useCatalogSetEnabled();
   const oddsFetch = useOddsFetchNow();
   const catalogFetch = useCatalogFetchNow();
+  const mezzoFetch = useAdminMezzoFetchNow();
+  const [mezzoSportId, setMezzoSportId] = useState<string>("501");
 
   const games = parseGames(oddsLatest.data?.snapshot);
   const topLeagues = parseTopLeagues(catalogLatest.data?.snapshot);
@@ -272,6 +324,58 @@ export function DataFetchingPage() {
         <p className="text-zinc-400 mt-1">Super admin only: toggle ingestion jobs and monitor stored data.</p>
       </header>
 
+      <Card className="bg-[#1A1A1A] border-zinc-800">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Mezzo Snapshots</span>
+            <Badge className="bg-zinc-700">MANUAL</Badge>
+          </CardTitle>
+          <CardDescription>Fetch and store Mezzo catalog + top-events for a selected sportId.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="w-56">
+              <Select value={mezzoSportId} onValueChange={setMezzoSportId}>
+                <SelectTrigger className="bg-black/30 border-zinc-700 text-white">
+                  <SelectValue placeholder="Select sportId" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111] border-zinc-800 text-white">
+                  <SelectItem value="501">501 — Football</SelectItem>
+                  <SelectItem value="504">504 — Basketball</SelectItem>
+                  <SelectItem value="502">502 — Ice Hockey</SelectItem>
+                  <SelectItem value="508">508 — Baseball</SelectItem>
+                  <SelectItem value="503">503 — Tennis</SelectItem>
+                  <SelectItem value="505">505 — Volleyball</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button
+              onClick={async () => {
+                const sportId = Number(mezzoSportId);
+                if (!Number.isFinite(sportId) || sportId <= 0) {
+                  setToast({ kind: "error", message: "Invalid sportId" });
+                  return;
+                }
+                try {
+                  const res = await mezzoFetch.mutateAsync(sportId);
+                  setLastFetchResult(res);
+                  setToast({ kind: "success", message: `Mezzo fetch started for sportId=${sportId}` });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Mezzo fetch failed") });
+                }
+              }}
+              disabled={mezzoFetch.isPending}
+              className="bg-brand text-black hover:bg-brand/90"
+            >
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Fetch Now
+            </Button>
+          </div>
+          <p className="text-xs text-zinc-500">Tip: fetch Football (501) + Basketball (504) to populate user sports.</p>
+        </CardContent>
+      </Card>
+
       {toast ? (
         <div
           className={
@@ -352,6 +456,142 @@ export function DataFetchingPage() {
               busy={setFetcherEnabled.isPending || fetchersStatus.isLoading}
             />
           </div>
+
+          <Card className="bg-[#1A1A1A] border-zinc-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-brand" /> APIfootball Fixture Mapping
+              </CardTitle>
+              <CardDescription>
+                Odds can only be saved after local fixtures are linked to APIfootball match IDs. Run fixture sync first, then fetch odds.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Sync Range From</label>
+                  <Input 
+                    type="date" 
+                    value={syncFrom} 
+                    onChange={(e) => setSyncFrom(e.target.value)} 
+                    className="bg-zinc-900 border-zinc-700 w-[180px]" 
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Sync Range To</label>
+                  <Input 
+                    type="date" 
+                    value={syncTo} 
+                    onChange={(e) => setSyncTo(e.target.value)} 
+                    className="bg-zinc-900 border-zinc-700 w-[180px]" 
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => {
+                      syncFixtures.mutate({ from: syncFrom, to: syncTo }, {
+                        onSuccess: (res) => {
+                          setLastSyncResult(res);
+                          setToast({ kind: "success", message: "Fixture sync complete." });
+                        },
+                        onError: (err: any) => setToast({ kind: "error", message: String(err?.message || "Sync failed") })
+                      });
+                    }}
+                    disabled={syncFixtures.isPending}
+                    className="bg-zinc-800 hover:bg-zinc-700"
+                  >
+                    {syncFixtures.isPending ? "Syncing..." : "Sync Fixtures From APIfootball Events"}
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      fetchOddsAdvanced.mutate({ from: syncFrom, to: syncTo, autoBackfillMapping: true }, {
+                        onSuccess: (res) => {
+                          setLastFetchResult(res);
+                          setToast({ kind: "success", message: "Odds fetch complete." });
+                        },
+                        onError: (err: any) => setToast({ kind: "error", message: String(err?.message || "Fetch failed") })
+                      });
+                    }}
+                    disabled={fetchOddsAdvanced.isPending}
+                    className="bg-brand text-black hover:bg-brand/80"
+                  >
+                    {fetchOddsAdvanced.isPending ? "Fetching..." : "Fetch Odds + Auto Map Fixtures"}
+                  </Button>
+                </div>
+              </div>
+
+              {(lastSyncResult || lastFetchResult) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-zinc-800">
+                  {lastSyncResult && (
+                    <div className="bg-zinc-950/40 border border-zinc-800 rounded-xl p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase">
+                        <CheckCircle2 className="w-3 h-3" /> Sync Result
+                      </div>
+                      <div className="grid grid-cols-2 gap-y-1 text-xs">
+                        <span className="text-zinc-500">Events Returned:</span>
+                        <span className="text-white text-right font-mono">{lastSyncResult.eventsReturned}</span>
+                        <span className="text-zinc-500">Fixtures Created:</span>
+                        <span className="text-white text-right font-mono">{lastSyncResult.fixturesCreated}</span>
+                        <span className="text-zinc-500">Fixtures Updated:</span>
+                        <span className="text-white text-right font-mono">{lastSyncResult.fixturesUpdated}</span>
+                        <span className="text-zinc-500">Already Mapped:</span>
+                        <span className="text-white text-right font-mono">{lastSyncResult.fixturesAlreadyMapped}</span>
+                        <span className="text-zinc-500">Teams Created:</span>
+                        <span className="text-white text-right font-mono">{lastSyncResult.teamsCreated}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {lastFetchResult && (
+                    <div className="bg-zinc-950/40 border border-zinc-800 rounded-xl p-4 space-y-2 lg:col-span-2">
+                      <div className="flex items-center gap-2 text-brand text-xs font-bold uppercase">
+                        <Info className="w-3 h-3" /> Fetch & Storage Result
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500">Odds Rows:</span>
+                          <span className="text-white font-mono">{lastFetchResult.snapshot?.responseBody?.length || 0}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500">Fixtures Touched:</span>
+                          <span className="text-white font-mono">{lastFetchResult.stats?.fixturesTouched || 0}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500">Markets Stored:</span>
+                          <span className="text-white font-mono">{lastFetchResult.stats?.marketsReturned || 0}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-zinc-500">Outcomes Upserted:</span>
+                          <span className="text-white font-mono">{lastFetchResult.stats?.outcomesUpserted || 0}</span>
+                        </div>
+                      </div>
+                      {lastFetchResult.stats?.unmatchedMatchIds > 0 && (
+                        <div className="flex items-center gap-2 text-amber-400 text-[10px] mt-2 bg-amber-950/20 px-2 py-1 rounded">
+                          <AlertTriangle className="w-3 h-3" />
+                          {lastFetchResult.stats.unmatchedMatchIds} match IDs found in provider odds but not mapped locally.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {oddsLatest.data?.snapshot?.requestPayload?.mappingWarning && (
+                <div className="bg-amber-950/30 border border-amber-800/50 rounded-xl p-4 flex gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                  <div>
+                    <div className="text-amber-200 text-sm font-bold">Mapping Warning</div>
+                    <p className="text-amber-200/70 text-xs mt-1">
+                      {oddsLatest.data.snapshot.requestPayload.mappingWarning}
+                    </p>
+                    <p className="text-amber-200/50 text-[10px] mt-2">
+                      Click "Sync Fixtures From APIfootball Events" first to ensure local fixtures exist and are linked.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Card className="bg-[#1A1A1A] border-zinc-800">
             <CardHeader>
@@ -556,12 +796,55 @@ export function DataFetchingPage() {
             </CardContent>
           </Card>
 
+          {oddsLatest.data?.storedStats && (
+            <Card className="bg-[#1A1A1A] border-zinc-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-emerald-500" /> Database Coverage Summary
+                </CardTitle>
+                <CardDescription>Aggregate count of outcomes currently active in the system.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
+                    <div className="text-zinc-400">Total APIfootball Outcomes</div>
+                    <div className="text-white text-xl font-bold mt-1">{oddsLatest.data.storedStats.totalOutcomes}</div>
+                  </div>
+                  <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
+                    <div className="text-zinc-400">Fixtures with Mapping</div>
+                    <div className="text-white text-xl font-bold mt-1">{oddsLatest.data.storedStats.mappedFixtures || 0}</div>
+                  </div>
+                  <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
+                    <div className="text-zinc-400">Last Database Update</div>
+                    <div className="text-white mt-1">
+                      {oddsLatest.data.storedStats.lastUpdate ? new Date(oddsLatest.data.storedStats.lastUpdate).toLocaleString() : "Never"}
+                    </div>
+                  </div>
+                </div>
+                {oddsLatest.data.storedStats.sampleEvent && (
+                  <div className="mt-4 bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
+                    <div className="text-zinc-400 text-xs uppercase font-bold tracking-wider">Sample Stored Event</div>
+                    <div className="flex justify-between items-center mt-2">
+                      <div>
+                        <div className="text-white font-bold">{oddsLatest.data.storedStats.sampleEvent.name}</div>
+                        <div className="text-zinc-500 text-xs">{oddsLatest.data.storedStats.sampleEvent.league}</div>
+                      </div>
+                      <div className="text-zinc-400 text-xs">
+                        {new Date(oddsLatest.data.storedStats.sampleEvent.startTime).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-[#1A1A1A] border-zinc-800">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-brand" /> Latest Odds Data
+                <Database className="w-5 h-5 text-brand" /> Latest Snapshot Content
               </CardTitle>
-              <CardDescription>Odds snapshot: {oddsLatest.data?.snapshot?.fetchedAt || "None"}</CardDescription>
+              <CardDescription>Content from the last successful API fetch: {oddsLatest.data?.snapshot?.fetchedAt || "None"}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="overflow-auto max-h-[480px]">
@@ -587,10 +870,11 @@ export function DataFetchingPage() {
                     ))}
                   </tbody>
                 </table>
-                {games.length === 0 ? <p className="text-zinc-400 text-sm py-6">No stored odds yet. Use Fetch Now.</p> : null}
+                {games.length === 0 ? <p className="text-zinc-400 text-sm py-6">No records in the latest snapshot. This usually means the API fetch didn't return any new odds, but stored data may still be active above.</p> : null}
               </div>
             </CardContent>
           </Card>
+
         </TabsContent>
 
         <TabsContent value="catalog" className="space-y-6">

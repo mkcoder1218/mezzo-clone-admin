@@ -42,8 +42,23 @@ export type OddsLatestResponse = {
     fetchedAt: string;
     sportId: number;
     responseBody: any;
+    requestPayload?: any;
   } | null;
+  storedStats?: {
+    totalOutcomes: number;
+    mappedFixtures?: number;
+    lastUpdate: string | null;
+    message?: string;
+    sampleEvent?: {
+      id: string;
+      name: string;
+      league: string;
+      startTime: string;
+    } | null;
+  };
 };
+
+
 
 export type CatalogLatestResponse = {
   snapshot: {

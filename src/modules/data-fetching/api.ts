@@ -5,8 +5,8 @@ export const dataFetchingApi = {
   oddsStatus: () => apiRequest<FetchJobStatus>("/api/odds/status"),
   oddsSetEnabled: (enabled: boolean) =>
     apiRequest("/api/odds/enabled", { method: "POST", body: JSON.stringify({ enabled }) }),
-  oddsFetchNow: () => apiRequest("/api/odds/fetch", { method: "POST", body: JSON.stringify({ sportId: 501 }) }),
-  oddsLatest: () => apiRequest<OddsLatestResponse>("/api/odds/latest?sportId=501"),
+  oddsFetchNow: (sportId: number) => apiRequest("/api/odds/fetch", { method: "POST", body: JSON.stringify({ sportId }) }),
+  oddsLatest: (sportId: number) => apiRequest<OddsLatestResponse>(`/api/odds/latest?sportId=${encodeURIComponent(String(sportId))}`),
 
   catalogStatus: () => apiRequest<FetchJobStatus>("/api/catalog/status"),
   catalogSetEnabled: (enabled: boolean) =>
@@ -24,4 +24,13 @@ export const dataFetchingApi = {
 
   adminRepairResultsFixtureMapping: (eventId: number, apply = true) =>
     apiRequest("/api/admin/results/repair-fixture-mapping", { method: "POST", body: JSON.stringify({ eventId, apply }) }),
+
+  oddsFetchNowWithParams: (body: { sportId: number; from?: string; to?: string; autoBackfillMapping?: boolean }) =>
+    apiRequest("/api/odds/fetch", { method: "POST", body: JSON.stringify(body) }),
+
+  mezzoFetchNow: (sportId: number) =>
+    apiRequest("/api/admin/odds/mezzo/fetch-now", { method: "POST", body: JSON.stringify({ sportId }) }),
+
+  apifootballSyncFixtures: (body: { from: string; to: string; leagueIds?: string[] }) =>
+    apiRequest("/api/admin/odds/apifootball/fixtures/sync-from-events", { method: "POST", body: JSON.stringify(body) }),
 };

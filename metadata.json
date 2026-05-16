@@ -1,6 +1,6 @@
 {
-  "name": "MezzoBet Admin Panel",
-  "description": "Multi-role management system for MezzoBet, featuring Super Admin, Agent, and Shop Owner controls with granular permissions.",
+  "name": "Kings Bet Admin Panel",
+  "description": "Multi-role management system for Kings Bet, featuring Super Admin, Agent, and Shop Owner controls with granular permissions.",
   "requestFramePermissions": [],
   "majorCapabilities": ["Authentication", "User Management", "Real-time Dashboard"]
 }

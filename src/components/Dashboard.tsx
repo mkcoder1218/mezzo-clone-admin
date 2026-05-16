@@ -270,7 +270,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
             Network <span className="text-brand">Overview</span>
           </h1>
           <p className="text-zinc-400 mt-1">
-            {isSuper ? "Global command telemetry for the Mezzobet network." : 
+            {isSuper ? "Global command telemetry for the Kings Bet network." : 
              isAgent ? "Portfolio performance and credit allocation metrics." :
              "Shop terminal status and localized betting volume."}
           </p>
