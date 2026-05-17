@@ -59,18 +59,22 @@ export function BannersPage() {
 
   const onPickImageFile = async (file: File | null) => {
     if (!file) return;
-    const asDataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.readAsDataURL(file);
-    });
-
-    setDraft((d) => ({
-      ...d,
-      imageUrl: asDataUrl,
-      title: String(d.title || "").trim() ? d.title : "Banner",
-    }));
+    setSaving(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const data = await apiRequest<{ url: string }>("/api/banners/upload", { method: "POST", body: fd });
+      setDraft((d) => ({
+        ...d,
+        imageUrl: String(data.url || ""),
+        title: String(d.title || "").trim() ? d.title : "Banner",
+      }));
+    } catch (e: any) {
+      setError(e?.message || "Upload failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const load = async () => {

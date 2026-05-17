@@ -31,9 +31,14 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const body = shouldJsonEncodeBody ? JSON.stringify(inputBody) : (options.body as any);
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...(options.headers as Record<string, string> || {})
   };
+
+  // Only set JSON content-type when we actually send JSON.
+  // For FormData, the browser must set the multipart boundary.
+  if (shouldJsonEncodeBody || inputBody == null) {
+    if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  }
 
   if (token) headers.Authorization = `Bearer ${token}`;
 
