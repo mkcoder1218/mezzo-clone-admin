@@ -36,7 +36,8 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   // Only set JSON content-type when we actually send JSON.
   // For FormData, the browser must set the multipart boundary.
-  if (shouldJsonEncodeBody || inputBody == null) {
+  const isStringBody = typeof inputBody === "string";
+  if (shouldJsonEncodeBody || isStringBody || inputBody == null) {
     if (!headers["Content-Type"]) headers["Content-Type"] = "application/json";
   }
 
