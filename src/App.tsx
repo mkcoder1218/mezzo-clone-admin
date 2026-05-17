@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { 
   Shield, 
   Activity,
@@ -133,7 +133,7 @@ export default function App() {
             <div className="p-8 md:p-12 max-w-7xl mx-auto w-full">
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={window.location.pathname + currentRole}
+                  key={window.location.hash + currentRole}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
