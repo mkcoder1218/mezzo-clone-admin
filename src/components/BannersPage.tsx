@@ -57,6 +57,22 @@ export function BannersPage() {
     return Boolean(String(draft.title || "").trim() && String(draft.imageUrl || "").trim());
   }, [draft.title, draft.imageUrl]);
 
+  const onPickImageFile = async (file: File | null) => {
+    if (!file) return;
+    const asDataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Failed to read file"));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsDataURL(file);
+    });
+
+    setDraft((d) => ({
+      ...d,
+      imageUrl: asDataUrl,
+      title: String(d.title || "").trim() ? d.title : "Banner",
+    }));
+  };
+
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -177,8 +193,23 @@ export function BannersPage() {
               <Input value={draft.highlight || ""} onChange={(e) => setDraft((d) => ({ ...d, highlight: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-bold text-zinc-300 uppercase tracking-wide">Image URL</div>
-              <Input value={draft.imageUrl || ""} onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))} />
+              <div className="text-xs font-bold text-zinc-300 uppercase tracking-wide">Banner Image</div>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => void onPickImageFile(e.target.files?.[0] || null)}
+                />
+                <div className="text-[11px] text-zinc-500">
+                  Or paste a URL / data URI:
+                </div>
+                <Input value={draft.imageUrl || ""} onChange={(e) => setDraft((d) => ({ ...d, imageUrl: e.target.value }))} />
+                {draft.imageUrl ? (
+                  <div className="mt-2 border border-zinc-800 rounded-xl overflow-hidden bg-zinc-950/40">
+                    <img src={draft.imageUrl} alt="Banner preview" className="w-full h-40 object-cover" />
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
