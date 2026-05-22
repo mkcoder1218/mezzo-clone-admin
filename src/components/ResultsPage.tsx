@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RefreshCcw } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCcw } from "lucide-react";
 import { apiRequest } from "../lib/apiClient";
 
 type ResultsResponse = { count: number; rows: any[] };
@@ -20,6 +20,7 @@ function todayYmd(): string {
 export function ResultsPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dtFrom, setDtFrom] = useState(todayYmd());
   const [dtTill, setDtTill] = useState(todayYmd());
   const [cashboxToken, setCashboxToken] = useState("");
@@ -183,22 +184,49 @@ export function ResultsPage() {
                     </td>
                   </tr>
                 ) : rows.length ? (
-                  rows.map((r: any) => (
-                    <tr key={r.id} className="border-b border-zinc-900">
-                      <td className="py-2 pr-3 text-zinc-200">{r.Sport?.name || "-"}</td>
-                      <td className="py-2 pr-3 text-zinc-200">
-                        {(r.League?.country ? `${r.League.country} - ` : "") + (r.League?.name || "-")}
-                      </td>
-                      <td className="py-2 pr-3 text-zinc-300">{r.startsAt ? new Date(r.startsAt).toLocaleString() : "-"}</td>
-                      <td className="py-2 pr-3 text-white">
-                        {(r.homeTeam?.name || "-") + " V " + (r.awayTeam?.name || "-")}
-                      </td>
-                      <td className="py-2 pr-3 font-mono text-brand">
-                        {r.externalScoreRaw || (r.homeScore != null && r.awayScore != null ? `${r.homeScore}-${r.awayScore}` : "-")}
-                      </td>
-                      <td className="py-2 pr-3 text-zinc-400">{r.externalSyncedAt ? new Date(r.externalSyncedAt).toLocaleString() : "-"}</td>
-                    </tr>
-                  ))
+                  rows.flatMap((r: any) => {
+                    const isExpanded = expandedId === r.id;
+                    const toggle = () => setExpandedId((cur) => (cur === r.id ? null : r.id));
+                    const scoreText =
+                      r.externalScoreRaw ||
+                      (r.homeScore != null && r.awayScore != null ? `${r.homeScore}-${r.awayScore}` : "-");
+
+                    return [
+                      <tr key={r.id} className="border-b border-zinc-900">
+                        <td className="py-2 pr-3 text-zinc-200">
+                          <button
+                            type="button"
+                            onClick={toggle}
+                            className="inline-flex items-center gap-2 hover:text-white"
+                            title="Show full result"
+                          >
+                            {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            <span>{r.Sport?.name || "-"}</span>
+                          </button>
+                        </td>
+                        <td className="py-2 pr-3 text-zinc-200">
+                          {(r.League?.country ? `${r.League.country} - ` : "") + (r.League?.name || "-")}
+                        </td>
+                        <td className="py-2 pr-3 text-zinc-300">{r.startsAt ? new Date(r.startsAt).toLocaleString() : "-"}</td>
+                        <td className="py-2 pr-3 text-white">
+                          {(r.homeTeam?.name || "-") + " V " + (r.awayTeam?.name || "-")}
+                        </td>
+                        <td className="py-2 pr-3 font-mono text-brand">{scoreText}</td>
+                        <td className="py-2 pr-3 text-zinc-400">{r.externalSyncedAt ? new Date(r.externalSyncedAt).toLocaleString() : "-"}</td>
+                      </tr>,
+                      ...(isExpanded
+                        ? [
+                            <tr key={`${r.id}__details`} className="border-b border-zinc-900">
+                              <td colSpan={6} className="py-3 pr-3">
+                                <pre className="text-xs bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4 overflow-auto max-h-[260px]">
+                                  {JSON.stringify(r, null, 2)}
+                                </pre>
+                              </td>
+                            </tr>,
+                          ]
+                        : []),
+                    ];
+                  })
                 ) : (
                   <tr>
                     <td colSpan={6} className="py-8 text-zinc-500 text-sm">

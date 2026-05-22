@@ -28,8 +28,8 @@ export const LoginPage = ({ onLogin }: LoginPageProps) => {
     setIsAuthenticating(true);
     setError(null);
     try {
-      // Backend expects 'phoneNumber' as the credential key even for email/identifier logins
-      const res = await authApi.login({ phoneNumber: identifier, password });
+      const id = identifier.trim();
+      const res = await authApi.login(id.includes("@") ? { email: id, password } : { phoneNumber: id, password });
       const backendRole = res.user?.Role?.name || (res.user as any)?.role;
       const roleMap: Record<string, UserRole> = {
         super_admin: "SUPER_ADMIN",

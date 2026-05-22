@@ -71,6 +71,18 @@ export function useAdminSetFetcherEnabled() {
   });
 }
 
+export function useAdminWorkersStatus() {
+  return useQuery({ queryKey: ["admin-workers-status"], queryFn: dataFetchingApi.adminWorkersStatus, refetchOnWindowFocus: false, refetchInterval: 10_000 });
+}
+
+export function useAdminSetWorkerEnabled() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, enabled }: { name: string; enabled: boolean }) => dataFetchingApi.adminSetWorkerEnabled(name, enabled),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-workers-status"] }),
+  });
+}
+
 export function useAdminOddsSettings() {
   return useQuery({ queryKey: ["admin-odds-settings"], queryFn: dataFetchingApi.adminOddsSettingsGet, refetchOnWindowFocus: false });
 }

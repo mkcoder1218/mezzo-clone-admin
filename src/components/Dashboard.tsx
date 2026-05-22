@@ -28,20 +28,21 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { UserRole } from "../types";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "../lib/apiClient";
 
 // --- Constants & Data ---
 
-const REVENUE_DATA = [
-  { name: "Mon", value: 4000 },
-  { name: "Tue", value: 3000 },
-  { name: "Wed", value: 6000 },
-  { name: "Thu", value: 8000 },
-  { name: "Fri", value: 7000 },
-  { name: "Sat", value: 12000 },
-  { name: "Sun", value: 10000 },
+const FALLBACK_CHART_DATA = [
+  { name: "Mon", value: 0 },
+  { name: "Tue", value: 0 },
+  { name: "Wed", value: 0 },
+  { name: "Thu", value: 0 },
+  { name: "Fri", value: 0 },
+  { name: "Sat", value: 0 },
+  { name: "Sun", value: 0 },
 ];
 
 // --- Modular Sub-components ---
@@ -59,6 +60,18 @@ const MetricCard = ({ title, value, change, icon: Icon }: any) => (
       <span className="inline-flex items-center text-[10px] uppercase font-bold text-emerald-500">
         {change} <span className="text-zinc-500 ml-1.5 font-normal lowercase italic tracking-normal">vs last cycle</span>
       </span>
+    </CardContent>
+  </Card>
+);
+
+const MetricCardSkeleton = () => (
+  <Card className="bg-[#1A1A1A] border-none overflow-hidden relative shadow-lg">
+    <CardHeader className="pb-2">
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="mt-3 h-10 w-32" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-3 w-28" />
     </CardContent>
   </Card>
 );
@@ -261,9 +274,77 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
   });
 
   const metrics = dashboard.data?.metrics || {};
+  const trend = (dashboard.data as any)?.trend?.dailyStake as { label: string; value: number }[] | undefined;
+  const chartData = (trend && Array.isArray(trend) ? trend : []).map((d) => ({ name: d.label, value: Number(d.value || 0) }));
+
+  if (dashboard.isLoading) {
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <header className="flex justify-between items-end">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-8 w-44 rounded-full" />
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {(isSuper || isAgent) && <Skeleton className="h-[520px] w-full bg-zinc-900/30" />}
+          <Card className={`${(isSuper || isAgent) ? "lg:col-span-2" : "lg:col-span-3"} bg-[#1A1A1A] border-none shadow-2xl`}>
+            <CardHeader>
+              <Skeleton className="h-5 w-44" />
+              <Skeleton className="mt-2 h-3 w-64" />
+            </CardHeader>
+            <CardContent className="h-[400px] w-full pt-4">
+              <Skeleton className="h-full w-full" />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="bg-[#1A1A1A] border-none shadow-2xl">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
+                <Skeleton className="h-4 w-24 rounded-full" />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Skeleton className="h-[420px] w-full bg-zinc-900/30" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {dashboard.isError ? (
+        <Card className="bg-rose-500/5 border border-rose-500/20">
+          <CardContent className="py-4 text-sm text-rose-200">
+            Failed to load analytics. Please refresh or check the server.
+          </CardContent>
+        </Card>
+      ) : null}
       <header className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold font-display tracking-tight text-white uppercase italic">
@@ -284,7 +365,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
         <MetricCard title="Gross Volume" value={Number(metrics.stakeSum || 0).toFixed(2)} change="—" icon={DollarSign} />
         <MetricCard title="Active Users" value={String(metrics.usersCount ?? "—")} change="—" icon={Users} />
         {isSuper || isAgent ? (
-          <MetricCard title="Allocated Limit" value="$1.0M" change="+5.4%" icon={Wallet} />
+          <MetricCard title="Total Payout" value={Number(metrics.payoutSum || 0).toFixed(2)} change="â€”" icon={Wallet} />
         ) : (
           <MetricCard title="Shop Balance" value="$12,000" change="-1.2%" icon={CreditCard} />
         )}
@@ -298,7 +379,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
           <BettingChart />
           <CardContent className="h-[400px] w-full pt-4">
              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={REVENUE_DATA}>
+                <AreaChart data={chartData.length ? chartData : FALLBACK_CHART_DATA}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#CCFF00" stopOpacity={0.3}/>

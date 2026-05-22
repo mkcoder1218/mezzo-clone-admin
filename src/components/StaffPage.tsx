@@ -29,23 +29,17 @@ export function StaffPage({ role }: { role: UserRole }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [roleId, setRoleId] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [loginName, setLoginName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
-  const [shopOwnerId, setShopOwnerId] = useState("");
-  const [autoCreateCashiers, setAutoCreateCashiers] = useState(true);
-  const [cashierCount, setCashierCount] = useState("0");
-  const [cashierStartName, setCashierStartName] = useState("");
-  const [cashierPassword, setCashierPassword] = useState("");
+  const [cashierCount, setCashierCount] = useState("1");
 
   const allowedRoleNames = useMemo(() => {
-    if (role === "SHOP_OWNER") return new Set(["cashier"]);
-    return new Set(["shop_owner", "cashier"]);
+    return new Set(["cashier"]);
   }, [role]);
 
   const roleOptions = useMemo(() => roles.filter((r) => allowedRoleNames.has(r.name)), [roles, allowedRoleNames]);
   const selectedRoleName = useMemo(() => roles.find((r) => r.id === roleId)?.name, [roles, roleId]);
-  const shopOwnerOptions = useMemo(() => items.filter((u) => u.Role?.name === "shop_owner"), [items]);
 
   async function fetchAll() {
     setLoading(true);
@@ -70,55 +64,36 @@ export function StaffPage({ role }: { role: UserRole }) {
     setBusy(true);
     setError(null);
     try {
-      const payload: any = { phoneNumber, password, displayName: displayName || undefined, roleId };
+      if (selectedRoleName !== "cashier") throw new Error("Select cashier role");
+      const cashierRoleId = roles.find((r) => r.name === "cashier")?.id;
+      if (!cashierRoleId) throw new Error("Missing cashier role");
 
-      // When creating a cashier as agent/super_agent, require assigning a shop owner.
-      if (selectedRoleName === "cashier" && role !== "SHOP_OWNER") {
-        if (!shopOwnerId) throw new Error("Select a shop owner for this cashier");
-        payload.createdById = shopOwnerId;
-      }
+      const n = Math.max(1, Math.min(50, Number(cashierCount) || 1));
+      const base = (displayName || phoneNumber).trim();
+      if (!base) throw new Error("Display name is required");
 
-      const created = await apiRequest<{ user: any }>("/api/staff", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-
-      // Optional bulk cashier creation when creating a shop owner.
-      if (selectedRoleName === "shop_owner" && autoCreateCashiers) {
-        const cashierRoleId = roles.find((r) => r.name === "cashier")?.id;
-        if (!cashierRoleId) throw new Error("Missing cashier role");
-
-        const n = Math.max(0, Math.min(50, Number(cashierCount) || 0));
-        if (n > 0) {
-          const base = (cashierStartName || displayName || phoneNumber).trim();
-          const pw = (cashierPassword || password).trim();
-          if (!pw) throw new Error("Password required for cashiers");
-          for (let i = 1; i <= n; i++) {
-            const cashierName = `${base}-cashier-${i}`;
-            await apiRequest("/api/staff", {
-              method: "POST",
-              body: JSON.stringify({
-                roleId: cashierRoleId,
-                // This app uses phoneNumber as the primary login identifier; we generate a unique one per cashier.
-                phoneNumber: cashierName,
-                displayName: cashierName,
-                password: pw,
-                createdById: created.user.id
-              })
-            });
-          }
+      if (n === 1) {
+        await apiRequest<{ user: any }>("/api/staff", {
+          method: "POST",
+          body: JSON.stringify({ roleId: cashierRoleId, loginName, password, displayName: displayName || undefined })
+        });
+      } else {
+        for (let i = 1; i <= n; i++) {
+          const cashierLogin = `${base}-cashier-${i}`;
+          const cashierDisplay = `${base} Cashier ${i}`;
+          await apiRequest<{ user: any }>("/api/staff", {
+            method: "POST",
+            body: JSON.stringify({ roleId: cashierRoleId, loginName: cashierLogin, password, displayName: cashierDisplay })
+          });
         }
       }
 
       setOpen(false);
       setRoleId("");
-      setPhoneNumber("");
+      setLoginName("");
       setPassword("");
       setDisplayName("");
-      setShopOwnerId("");
-      setCashierCount("0");
-      setCashierStartName("");
-      setCashierPassword("");
+      setCashierCount("1");
       await fetchAll();
     } catch (e: any) {
       setError(e?.message || "Failed to create user");
@@ -173,8 +148,8 @@ export function StaffPage({ role }: { role: UserRole }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Phone Number</label>
-                    <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Login Name</label>
+                    <Input value={loginName} onChange={(e) => setLoginName(e.target.value)} className="bg-zinc-900 border-zinc-800" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Display Name</label>
@@ -182,68 +157,11 @@ export function StaffPage({ role }: { role: UserRole }) {
                   </div>
                 </div>
 
-                {selectedRoleName === "cashier" && role !== "SHOP_OWNER" ? (
+                {selectedRoleName === "cashier" ? (
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Assign Shop Owner</label>
-                    <Select value={shopOwnerId} onValueChange={setShopOwnerId}>
-                      <SelectTrigger className="bg-zinc-900 border-zinc-800">
-                        <SelectValue placeholder={shopOwnerOptions.length ? "Select shop owner" : "No shop owners available"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#111111] border-zinc-800 text-white">
-                        {shopOwnerOptions.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {(u.displayName || u.phoneNumber) + " (shop_owner)"}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : null}
-
-                {selectedRoleName === "shop_owner" ? (
-                  <div className="space-y-4 border-t border-zinc-800 pt-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Cashiers</p>
-                        <p className="text-xs text-zinc-500">Optionally create cashiers under this shop owner.</p>
-                      </div>
-                      <label className="flex items-center gap-2 text-sm text-zinc-200">
-                        <input
-                          type="checkbox"
-                          checked={autoCreateCashiers}
-                          onChange={(e) => setAutoCreateCashiers(e.target.checked)}
-                        />
-                        Auto create
-                      </label>
-                    </div>
-
-                    {autoCreateCashiers ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">How Many</label>
-                          <Input value={cashierCount} onChange={(e) => setCashierCount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Cashier Start Name</label>
-                          <Input
-                            value={cashierStartName}
-                            onChange={(e) => setCashierStartName(e.target.value)}
-                            placeholder="defaults to shop owner name"
-                            className="bg-zinc-900 border-zinc-800"
-                          />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Cashier Password</label>
-                          <Input
-                            type="password"
-                            value={cashierPassword}
-                            onChange={(e) => setCashierPassword(e.target.value)}
-                            placeholder="defaults to shop owner password"
-                            className="bg-zinc-900 border-zinc-800"
-                          />
-                        </div>
-                      </div>
-                    ) : null}
+                    <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">How Many Cashiers</label>
+                    <Input value={cashierCount} onChange={(e) => setCashierCount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                    <p className="text-xs text-zinc-500 pl-1">Display name is used as the base for generated cashier logins.</p>
                   </div>
                 ) : null}
 
@@ -257,7 +175,7 @@ export function StaffPage({ role }: { role: UserRole }) {
                 <Button onClick={() => setOpen(false)} variant="secondary" className="bg-zinc-800 hover:bg-zinc-700 text-white" disabled={busy}>
                   Cancel
                 </Button>
-                <Button onClick={create} className="bg-brand text-black hover:bg-brand/80" disabled={busy || !roleId || !phoneNumber || !password}>
+                <Button onClick={create} className="bg-brand text-black hover:bg-brand/80" disabled={busy || !roleId || !loginName || !password}>
                   {busy ? "Creating..." : "Create"}
                 </Button>
               </DialogFooter>

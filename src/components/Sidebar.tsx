@@ -9,6 +9,7 @@ import {
   Shield, 
   Settings, 
   Database,
+  Power,
   Bug,
   Wrench,
   Wallet,
@@ -41,6 +42,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
     () =>
       [
         { name: "Data Fetch", path: "/data-fetching", icon: Database, roles: ["SUPER_ADMIN"] },
+        { name: "Workers", path: "/workers", icon: Power, roles: ["SUPER_ADMIN"] },
         { name: "Odds Settings", path: "/odds-management/settings", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Leagues", path: "/odds-management/apifootball-leagues", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Mezzo League Mapping", path: "/odds-management/mezzo-league-mapping", icon: ListChecks, roles: ["SUPER_ADMIN"] },
@@ -56,9 +58,11 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
     () =>
       [
         { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
+        { name: "Bet Queue", path: "/bet-queue", icon: Receipt, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
         { name: "Redeem", path: "/redeem", icon: CheckCircle2, roles: ["SUPER_ADMIN"] },
         { name: "Results", path: "/results", icon: ListChecks, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
         { name: "Results Run Now", path: "/results-run-now", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "Unsettled Slips", path: "/results-unsettled", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "Results Diagnostics", path: "/results-diagnostics", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Events", path: "/apifootball-events", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },

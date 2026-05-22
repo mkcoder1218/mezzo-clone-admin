@@ -25,6 +25,7 @@ import { CashbackConfigPage } from "./components/CashbackConfigPage";
 import { ResultsRunNowPage } from "./components/ResultsRunNowPage";
 import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
 import { ApiFootballEventsLookupPage } from "./components/ApiFootballEventsLookupPage";
+import { ResultsUnsettledPage } from "./components/ResultsUnsettledPage";
 import { ShopManagementPage } from "./components/ShopManagement";
 import { AgentsPage } from "./components/AgentsPage";
 import { RolesPage } from "./components/RolesPage";
@@ -34,7 +35,9 @@ import { ResultsPage } from "./components/ResultsPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { SettingsPage } from "./components/SettingsPage";
 import { BannersPage } from "./components/BannersPage";
+import { BetQueuePage } from "./components/BetQueuePage";
 import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
+import { WorkersPage } from "./modules/workers/WorkersPage";
 import { OddsDebugPage } from "./modules/odds-debug/OddsDebugPage";
 import { DebugToolsPage } from "./modules/debug-tools/DebugToolsPage";
 import { OddsSettingsPage } from "./modules/odds-management/OddsSettingsPage";
@@ -154,9 +157,11 @@ export default function App() {
                       }
                     />
                     <Route path="/bets" element={<BetManagementPage role={currentRole} />} />
+                    <Route path="/bet-queue" element={<BetQueuePage />} />
                     <Route path="/redeem" element={<RedeemTicketsPage />} />
                     <Route path="/cashback-config" element={<CashbackConfigPage />} />
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
+                    <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />
                     <Route path="/results-diagnostics" element={<ResultsDiagnosticsPage />} />
                     <Route path="/apifootball-events" element={<ApiFootballEventsLookupPage />} />
                     <Route path="/results" element={<ResultsPage />} />
@@ -190,6 +195,12 @@ export default function App() {
                         ) : (
                           <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                         )
+                      }
+                    />
+                    <Route
+                      path="/workers"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <WorkersPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                       }
                     />
                     <Route

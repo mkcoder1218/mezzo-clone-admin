@@ -18,6 +18,13 @@ export const dataFetchingApi = {
   adminSetFetcherEnabled: (name: string, enabled: boolean) =>
     apiRequest(`/api/admin/fetchers/${name}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
 
+  adminWorkersStatus: () => apiRequest<{ workers: Array<{ name: string; enabled: boolean }> }>("/api/admin/workers/status"),
+  adminSetWorkerEnabled: (name: string, enabled: boolean) =>
+    apiRequest(`/api/admin/workers/${name}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
+  adminPlacingBetslips: (status: "placing" | "place_failed", limit = 50) =>
+    apiRequest<{ status: string; rows: any[] }>(`/api/admin/workers/betslips?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(String(limit))}`),
+  adminRetryBetslip: (slipId: string) => apiRequest(`/api/admin/workers/betslips/${encodeURIComponent(slipId)}/retry`, { method: "POST" }),
+
   adminOddsSettingsGet: () => apiRequest<AdminOddsSettingsResponse>("/api/admin/settings/odds"),
   adminOddsSettingsPatch: (body: OddsConfigValue) =>
     apiRequest("/api/admin/settings/odds", { method: "PATCH", body: JSON.stringify(body) }),
