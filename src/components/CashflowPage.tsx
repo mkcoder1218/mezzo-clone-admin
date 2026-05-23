@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,22 +18,100 @@ type CashflowRow = {
   income: number;
 };
 
+type CashflowFilters = {
+  dtFrom: string | null;
+  dtTill: string | null;
+  userId: string | null;
+};
+
 function money(v: any) {
   const n = Number(v || 0);
   return Number.isFinite(n) ? n.toFixed(2) : "0.00";
 }
 
+function toYmdUtc(d: Date) {
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function CashflowPage({ role }: { role: UserRole }) {
   const isSuperAdmin = role === "SUPER_ADMIN";
 
+  const [datePreset, setDatePreset] = useState<
+    "all" | "today" | "yesterday" | "last7" | "last30" | "thisMonth" | "lastMonth" | "custom"
+  >("last7");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTill, setCustomTill] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
+
+  const { dtFrom, dtTill } = useMemo(() => {
+    const now = new Date();
+    const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+
+    const addDaysUtc = (d: Date, days: number) =>
+      new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + days, 0, 0, 0, 0));
+
+    const startOfMonthUtc = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1, 0, 0, 0, 0));
+    const startOfPrevMonthUtc = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1, 0, 0, 0, 0));
+
+    if (datePreset === "all") return { dtFrom: "", dtTill: "" };
+    if (datePreset === "today") {
+      const from = todayUtc;
+      const till = todayUtc;
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+    if (datePreset === "yesterday") {
+      const from = addDaysUtc(todayUtc, -1);
+      const till = from;
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+    if (datePreset === "last7") {
+      const till = todayUtc;
+      const from = addDaysUtc(todayUtc, -6);
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+    if (datePreset === "last30") {
+      const till = todayUtc;
+      const from = addDaysUtc(todayUtc, -29);
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+    if (datePreset === "thisMonth") {
+      const from = startOfMonthUtc(todayUtc);
+      const till = todayUtc;
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+    if (datePreset === "lastMonth") {
+      const from = startOfPrevMonthUtc(todayUtc);
+      const till = addDaysUtc(startOfMonthUtc(todayUtc), -1);
+      return { dtFrom: toYmdUtc(from), dtTill: toYmdUtc(till) };
+    }
+
+    // custom
+    const from = customFrom.trim();
+    const till = customTill.trim();
+    return { dtFrom: from, dtTill: till };
+  }, [datePreset, customFrom, customTill]);
+
+  const endpoint = isSuperAdmin ? "/api/cashflow/agents" : "/api/cashflow/cashiers";
+  const qs = useMemo(() => {
+    const p = new URLSearchParams();
+    if (dtFrom) p.set("dtFrom", dtFrom);
+    if (dtTill) p.set("dtTill", dtTill);
+    if (userId) p.set("userId", userId);
+    const s = p.toString();
+    return s ? `?${s}` : "";
+  }, [dtFrom, dtTill, userId]);
+
   const q = useQuery({
-    queryKey: ["cashflow", isSuperAdmin ? "agents" : "cashiers"],
-    queryFn: () =>
-      apiRequest<{ rows: CashflowRow[] }>(isSuperAdmin ? "/api/cashflow/agents" : "/api/cashflow/cashiers"),
+    queryKey: ["cashflow", isSuperAdmin ? "agents" : "cashiers", dtFrom, dtTill, userId],
+    queryFn: () => apiRequest<{ rows: CashflowRow[]; filters?: CashflowFilters }>(`${endpoint}${qs}`),
     staleTime: 10_000,
   });
 
   const rows = q.data?.rows || [];
+  const serverFilters = q.data?.filters;
   const title = isSuperAdmin ? "Agent Cashflow" : "Cashier Cashflow";
   const desc = isSuperAdmin
     ? "Income and performance per agent (commission based)."
@@ -56,6 +134,88 @@ export function CashflowPage({ role }: { role: UserRole }) {
           {role.replace("_", " ")} VIEW
         </Badge>
       </header>
+
+      <Card className="bg-[#1A1A1A] border-zinc-800">
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>
+            Date range and user{" "}
+            <span className="text-zinc-500">
+              (client: {dtFrom || "—"} → {dtTill || "—"}
+              {serverFilters ? `, server: ${serverFilters.dtFrom || "—"} → ${serverFilters.dtTill || "—"}` : ""})
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <label className="space-y-1">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">Date Range</div>
+              <select
+                value={datePreset}
+                onChange={(e) => setDatePreset(e.target.value as any)}
+                className="w-full h-10 rounded-md bg-black/30 border border-zinc-800 px-3 text-zinc-200"
+              >
+                <option value="last7">Last 7 days</option>
+                <option value="last30">Last 30 days</option>
+                <option value="today">Today</option>
+                <option value="yesterday">Yesterday</option>
+                <option value="thisMonth">This month</option>
+                <option value="lastMonth">Last month</option>
+                <option value="all">All time</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">From / To (UTC)</div>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={customFrom}
+                  onChange={(e) => setCustomFrom(e.target.value)}
+                  disabled={datePreset !== "custom"}
+                  className="w-full h-10 rounded-md bg-black/30 border border-zinc-800 px-3 text-zinc-200 disabled:opacity-50"
+                />
+                <input
+                  type="date"
+                  value={customTill}
+                  onChange={(e) => setCustomTill(e.target.value)}
+                  disabled={datePreset !== "custom"}
+                  className="w-full h-10 rounded-md bg-black/30 border border-zinc-800 px-3 text-zinc-200 disabled:opacity-50"
+                />
+              </div>
+            </label>
+            <label className="space-y-1">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">{isSuperAdmin ? "Agent" : "Cashier"}</div>
+              <select
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="w-full h-10 rounded-md bg-black/30 border border-zinc-800 px-3 text-zinc-200"
+              >
+                <option value="">All</option>
+                {rows.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="mt-3 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setDatePreset("last7");
+                setCustomFrom("");
+                setCustomTill("");
+                setUserId("");
+              }}
+              className="h-9 px-4 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200 text-[12px] font-bold uppercase tracking-widest"
+            >
+              Reset
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-[#1A1A1A] border-zinc-800">
@@ -131,4 +291,3 @@ export function CashflowPage({ role }: { role: UserRole }) {
     </div>
   );
 }
-
