@@ -15,6 +15,7 @@ import {
   Wallet,
   User as UserIcon,
   Target,
+  TrendingUp,
   ChevronDown,
   LogOut
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
     { name: "Users", path: "/users", icon: Users, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Agents", path: "/agents", icon: Shield, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
     { name: "Staff", path: "/staff", icon: Users, roles: ["SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
+    { name: "Cashflow", path: "/cashflow", icon: TrendingUp, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT"] },
     { name: "Shops", path: "/shops", icon: Store, roles: ["SUPER_ADMIN", "AGENT"] },
     { name: "Limits", path: "/limits", icon: Wallet, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
   ];

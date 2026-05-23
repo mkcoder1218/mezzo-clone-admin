@@ -31,6 +31,7 @@ import { AgentsPage } from "./components/AgentsPage";
 import { RolesPage } from "./components/RolesPage";
 import { LimitsPage } from "./components/LimitsPage";
 import { StaffPage } from "./components/StaffPage";
+import { CashflowPage } from "./components/CashflowPage";
 import { ResultsPage } from "./components/ResultsPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { SettingsPage } from "./components/SettingsPage";
@@ -251,6 +252,17 @@ export default function App() {
                       element={
                         currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" ? (
                           <AgentsPage role={currentRole} />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
+
+                    <Route
+                      path="/cashflow"
+                      element={
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" || currentRole === "AGENT" ? (
+                          <CashflowPage role={currentRole} />
                         ) : (
                           <div className="p-8 text-zinc-400">Forbidden.</div>
                         )
