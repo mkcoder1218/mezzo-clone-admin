@@ -38,6 +38,46 @@ export const dataFetchingApi = {
   mezzoFetchNow: (sportId: number) =>
     apiRequest("/api/admin/odds/mezzo/fetch-now", { method: "POST", body: JSON.stringify({ sportId }) }),
 
+  mezzoResetOddsStatus: (options: { signal?: AbortSignal } = {}) =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/status", { signal: options.signal }),
+  mezzoResetOddsStart: (sportId: number) =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/start", { method: "POST", body: JSON.stringify({ sportId }) }),
+  mezzoResetOddsMapOnly: (body: { from?: string; to?: string; limit?: number } = {}) =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/map-only", { method: "POST", body: JSON.stringify(body) }),
+  mezzoResetOddsRematch: (body: { from?: string; to?: string; limit?: number } = {}) =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/rematch", { method: "POST", body: JSON.stringify(body) }),
+  mezzoResetOddsStop: () =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/stop", { method: "POST" }),
+  mezzoResetOddsForceStop: () =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/force-stop", { method: "POST" }),
+  mezzoResetOddsDebugMatch: (body: { fixtureId: string; leagueIdsLimit?: number }) =>
+    apiRequest<any>("/api/admin/odds/mezzo/reset-odds/debug-match", { method: "POST", body: JSON.stringify(body) }),
+
   apifootballSyncFixtures: (body: { from: string; to: string; leagueIds?: string[] }) =>
     apiRequest("/api/admin/odds/apifootball/fixtures/sync-from-events", { method: "POST", body: JSON.stringify(body) }),
+
+  apiFootballLeaguesFetchNow: () =>
+    apiRequest<any>("/api/admin/odds/apifootball/leagues/fetch-now", { method: "POST" }),
+  apiFootballLeaguesList: (params: { page?: number; limit?: number; search?: string; country?: string; syncEnabled?: boolean | null; active?: boolean | null } = {}) => {
+    const qp = new URLSearchParams();
+    if (params.page) qp.set("page", String(params.page));
+    if (params.limit) qp.set("limit", String(params.limit));
+    if (params.search) qp.set("search", params.search);
+    if (params.country) qp.set("country", params.country);
+    if (params.syncEnabled === true) qp.set("syncEnabled", "true");
+    if (params.syncEnabled === false) qp.set("syncEnabled", "false");
+    if (params.active === true) qp.set("active", "true");
+    if (params.active === false) qp.set("active", "false");
+    const qs = qp.toString();
+    return apiRequest<any>(`/api/admin/odds/apifootball/leagues${qs ? `?${qs}` : ""}`);
+  },
+  apiFootballLeaguesPatchBulk: (body: { ids: string[]; patch: { isEnabledForSync?: boolean; isCronEnabled?: boolean; cronIntervalMs?: number; priority?: number; isTop?: boolean } }) =>
+    apiRequest<any>("/api/admin/odds/apifootball/leagues/bulk", {
+      method: "PATCH",
+      body: JSON.stringify({ ids: body.ids, ...(body.patch || {}) }),
+    }),
+  apiFootballLeaguesEnableAll: () =>
+    apiRequest<any>("/api/admin/odds/apifootball/leagues/enable-all", { method: "POST" }),
+  apiFootballLeaguesDisableAll: () =>
+    apiRequest<any>("/api/admin/odds/apifootball/leagues/disable-all", { method: "POST" }),
 };

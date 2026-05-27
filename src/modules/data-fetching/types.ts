@@ -23,6 +23,8 @@ export type OddsConfigValue = {
   prematchOddsMaxAgeSeconds: number;
   detailOddsMaxAgeSeconds: number;
   liveOddsMaxAgeSeconds: number;
+  liveBettingEnabled?: boolean;
+  detailPersistToDb?: boolean;
   mainOddsCronIntervalMs: number;
   detailOddsCronIntervalMs: number;
   resultsCronIntervalMs: number;

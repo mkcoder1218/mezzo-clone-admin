@@ -77,6 +77,12 @@ export function ResultsPage() {
     onSuccess: () => listQuery.refetch()
   });
 
+  const fetchStats = useMutation({
+    mutationFn: async (fixtureId: string) =>
+      apiRequest(`/api/admin/fixtures/${fixtureId}/fetch-statistics`, { method: "POST" }),
+    onSuccess: () => listQuery.refetch(),
+  });
+
   const rows = listQuery.data?.rows || [];
   const count = listQuery.data?.count || 0;
   const totalPages = Math.max(1, Math.ceil(count / limit));
@@ -218,6 +224,16 @@ export function ResultsPage() {
                         ? [
                             <tr key={`${r.id}__details`} className="border-b border-zinc-900">
                               <td colSpan={6} className="py-3 pr-3">
+                                <div className="flex items-center justify-end gap-2 pb-2">
+                                  <Button
+                                    onClick={() => fetchStats.mutate(String(r.id))}
+                                    disabled={fetchStats.isPending}
+                                    className="bg-zinc-800 hover:bg-zinc-700"
+                                    title="Fetch API-Football get_statistics and store into externalScoreRaw"
+                                  >
+                                    {fetchStats.isPending ? "Fetching..." : "Fetch Statistics"}
+                                  </Button>
+                                </div>
                                 <pre className="text-xs bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4 overflow-auto max-h-[260px]">
                                   {JSON.stringify(r, null, 2)}
                                 </pre>

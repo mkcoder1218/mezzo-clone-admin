@@ -67,6 +67,8 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
         { name: "Unsettled Slips", path: "/results-unsettled", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "Results Diagnostics", path: "/results-diagnostics", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Events", path: "/apifootball-events", icon: ListChecks, roles: ["SUPER_ADMIN"] },
+        { name: "Unmapped Fixtures", path: "/unmapped-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
+        { name: "Mapped Fixtures", path: "/mapped-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
         { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
       ].filter((i) => i.roles.includes(currentRole)),
     [currentRole]
@@ -78,6 +80,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
       [
         { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Cashback Config", path: "/cashback-config", icon: Target, roles: ["SUPER_ADMIN"] },
+        { name: "Settlement Config", path: "/settlement-config", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
         { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
         { name: "Debug Tools", path: "/debug-tools", icon: Wrench, roles: ["SUPER_ADMIN"] },

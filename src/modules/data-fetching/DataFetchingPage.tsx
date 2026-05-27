@@ -1,4 +1,4 @@
-import { RefreshCcw, Power, Database, ListChecks, LibraryBig, Percent } from "lucide-react";
+import { RefreshCcw, Power, Database, ListChecks, LibraryBig, Percent, Globe, Square } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +22,47 @@ import {
   useOddsStatus,
   useAdminOddsFetchAdvanced,
   useAdminApiFootballSyncFixtures,
-  useAdminMezzoFetchNow
+  useAdminMezzoFetchNow,
+  useAdminMezzoResetOddsStart,
+  useAdminMezzoResetOddsMapOnly,
+  useAdminMezzoResetOddsRematch,
+  useAdminMezzoResetOddsDebugMatch,
+  useAdminMezzoResetOddsStatus,
+  useAdminMezzoResetOddsStop,
+  useAdminMezzoResetOddsForceStop,
+  useAdminApiFootballLeaguesDisableAll,
+  useAdminApiFootballLeaguesEnableAll,
+  useAdminApiFootballLeaguesFetchNow,
+  useAdminApiFootballLeaguesList,
+  useAdminApiFootballLeaguesPatchBulk
 } from "./hooks";
 import type { ParsedGame } from "./types";
 import { apiRequest } from "../../lib/apiClient";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, CheckCircle2, AlertTriangle, Info } from "lucide-react";
+
+function ymd(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function addDays(ymdStr: string, days: number) {
+  const t = new Date(`${ymdStr}T00:00:00.000Z`).getTime();
+  if (!Number.isFinite(t)) return ymdStr;
+  return ymd(new Date(t + days * 86_400_000));
+}
+
+function clampToMaxRange(from: string, to: string, maxDaysInclusive: number) {
+  const fromT = new Date(`${from}T00:00:00.000Z`).getTime();
+  const toT = new Date(`${to}T00:00:00.000Z`).getTime();
+  if (!Number.isFinite(fromT)) return { from, to };
+  if (!Number.isFinite(toT) || toT < fromT) {
+    return { from, to: addDays(from, maxDaysInclusive - 1) };
+  }
+  const maxTo = addDays(from, maxDaysInclusive - 1);
+  const maxToT = new Date(`${maxTo}T00:00:00.000Z`).getTime();
+  if (toT > maxToT) return { from, to: maxTo };
+  return { from, to };
+}
 
 function parseGames(snapshot: any): ParsedGame[] {
   const responseBody = snapshot?.responseBody;
@@ -208,6 +243,8 @@ export function DataFetchingPage() {
     prematchOddsMaxAgeSeconds: 3600,
     detailOddsMaxAgeSeconds: 7200,
     liveOddsMaxAgeSeconds: 15,
+    liveBettingEnabled: true,
+    detailPersistToDb: false,
     mainOddsCronIntervalMs: 900000,
     detailOddsCronIntervalMs: 1800000,
     resultsCronIntervalMs: 180000
@@ -229,13 +266,47 @@ export function DataFetchingPage() {
   const oddsFetch = useOddsFetchNow();
   const catalogFetch = useCatalogFetchNow();
   const mezzoFetch = useAdminMezzoFetchNow();
+  const mezzoResetStart = useAdminMezzoResetOddsStart();
+  const mezzoResetMapOnly = useAdminMezzoResetOddsMapOnly();
+  const mezzoResetRematch = useAdminMezzoResetOddsRematch();
+  const mezzoDebugMatch = useAdminMezzoResetOddsDebugMatch();
+  const mezzoResetStatus = useAdminMezzoResetOddsStatus();
+  const mezzoResetStop = useAdminMezzoResetOddsStop();
+  const mezzoResetForceStop = useAdminMezzoResetOddsForceStop();
   const [mezzoSportId, setMezzoSportId] = useState<string>("501");
+  const [debugMatchResult, setDebugMatchResult] = useState<any>(null);
+  const [mapWindowPreset, setMapWindowPreset] = useState<"next5" | "worldcup" | "custom">("next5");
+  const [mapWindowFrom, setMapWindowFrom] = useState<string>(() => ymd(new Date()));
+  const [mapWindowTo, setMapWindowTo] = useState<string>(() => addDays(ymd(new Date()), 4));
+  const [mapLimit, setMapLimit] = useState<number>(5000);
+
+  // APIfootball leagues config
+  const [apiLSearch, setApiLSearch] = useState("");
+  const [apiLPage, setApiLPage] = useState(1);
+  const apiLLimit = 50;
+  const [apiLSyncEnabled, setApiLSyncEnabled] = useState<boolean | null>(null);
+  const [apiLActive, setApiLActive] = useState<boolean | null>(null);
+  const apiLeagues = useAdminApiFootballLeaguesList({ page: apiLPage, limit: apiLLimit, search: apiLSearch, syncEnabled: apiLSyncEnabled, active: apiLActive });
+  const apiLeaguesFetchNow = useAdminApiFootballLeaguesFetchNow();
+  const apiLeaguesBulk = useAdminApiFootballLeaguesPatchBulk();
+  const apiLeaguesEnableAll = useAdminApiFootballLeaguesEnableAll();
+  const apiLeaguesDisableAll = useAdminApiFootballLeaguesDisableAll();
+  const [apiLSelected, setApiLSelected] = useState<Record<string, boolean>>({});
 
   const games = parseGames(oddsLatest.data?.snapshot);
   const topLeagues = parseTopLeagues(catalogLatest.data?.snapshot);
   const fetchers = fetchersStatus.data?.data;
 
   const qc = useQueryClient();
+  const resetJob = (mezzoResetStatus.data as any) || null;
+
+  // Keep mapping window constrained to 5 days (APIfootball get_events limit).
+  useEffect(() => {
+    const clamped = clampToMaxRange(mapWindowFrom, mapWindowTo, 5);
+    if (clamped.from !== mapWindowFrom) setMapWindowFrom(clamped.from);
+    if (clamped.to !== mapWindowTo) setMapWindowTo(clamped.to);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapWindowFrom, mapWindowTo]);
 
   const results = useQuery({
     queryKey: ["results", { resultsQ, resultsPage }],
@@ -371,8 +442,284 @@ export function DataFetchingPage() {
               <RefreshCcw className="w-4 h-4 mr-2" />
               Fetch Now
             </Button>
+
+            <Button
+              onClick={async () => {
+                const sportId = Number(mezzoSportId);
+                if (!Number.isFinite(sportId) || sportId <= 0) {
+                  setToast({ kind: "error", message: "Invalid sportId" });
+                  return;
+                }
+                try {
+                  const res = await mezzoResetStart.mutateAsync(sportId);
+                  setLastFetchResult(res);
+                  setToast({ kind: "success", message: "Mezzo reset odds job started." });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Reset odds failed to start") });
+                }
+              }}
+              disabled={mezzoResetStart.isPending || Boolean(resetJob?.running)}
+              className="bg-zinc-800 hover:bg-zinc-700 text-white"
+            >
+              Reset Odds
+            </Button>
+
+            <div className="flex flex-wrap items-end gap-2 rounded-lg border border-zinc-800 bg-black/20 px-3 py-2">
+              <div className="space-y-1">
+                <label className="text-[10px] text-zinc-400">Preset</label>
+                <Select
+                  value={mapWindowPreset}
+                  onValueChange={(v: any) => {
+                    const preset = (v || "custom") as typeof mapWindowPreset;
+                    setMapWindowPreset(preset);
+                    if (preset === "next5") {
+                      const f = ymd(new Date());
+                      setMapWindowFrom(f);
+                      setMapWindowTo(addDays(f, 4));
+                    } else if (preset === "worldcup") {
+                      // Based on current Mezzo World Cup fixtures: start around 2026-06-13.
+                      const f = "2026-06-13";
+                      setMapWindowFrom(f);
+                      setMapWindowTo(addDays(f, 4));
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-[160px] h-8 bg-black/30 border-zinc-700 text-zinc-200">
+                    <SelectValue placeholder="Select preset" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#101010] border-zinc-800">
+                    <SelectItem value="next5">Next 5 days</SelectItem>
+                    <SelectItem value="worldcup">World Cup 2026</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-zinc-400">From</label>
+                <Input
+                  type="date"
+                  value={mapWindowFrom}
+                  onChange={(e) => {
+                    setMapWindowPreset("custom");
+                    const nextFrom = e.target.value;
+                    setMapWindowFrom(nextFrom);
+                    setMapWindowTo((prev) => clampToMaxRange(nextFrom, prev, 5).to);
+                  }}
+                  className="w-[150px] h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-zinc-400">To (max 5 days)</label>
+                <Input
+                  type="date"
+                  value={mapWindowTo}
+                  onChange={(e) => {
+                    setMapWindowPreset("custom");
+                    setMapWindowTo(e.target.value);
+                  }}
+                  className="w-[150px] h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-zinc-400">Limit</label>
+                <Input
+                  type="number"
+                  value={String(mapLimit)}
+                  onChange={(e) => setMapLimit(Number(e.target.value || 0) || 0)}
+                  className="w-[110px] h-8"
+                />
+              </div>
+
+              <div className="flex items-end gap-2">
+                <Button
+                  onClick={() => {
+                    setMapWindowPreset("custom");
+                    const f = addDays(mapWindowFrom, -5);
+                    setMapWindowFrom(f);
+                    setMapWindowTo(addDays(f, 4));
+                  }}
+                  className="h-8 bg-zinc-900 border border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+                  title="Previous 5-day window"
+                >
+                  Prev 5d
+                </Button>
+                <Button
+                  onClick={() => {
+                    setMapWindowPreset("custom");
+                    const f = addDays(mapWindowFrom, 5);
+                    setMapWindowFrom(f);
+                    setMapWindowTo(addDays(f, 4));
+                  }}
+                  className="h-8 bg-zinc-900 border border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+                  title="Next 5-day window"
+                >
+                  Next 5d
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await mezzoResetMapOnly.mutateAsync({ from: mapWindowFrom, to: mapWindowTo, limit: mapLimit });
+                  setLastFetchResult(res);
+                  setToast({ kind: "success", message: "APIfootball mapping started (no reset)." });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Failed to start mapping") });
+                }
+              }}
+              disabled={mezzoResetMapOnly.isPending || Boolean(resetJob?.running)}
+              className="bg-zinc-900 border border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+              title="Backfill APIfootball match ids for existing Mezzo fixtures (no delete/refetch/ingest)"
+            >
+              Match APIfootball
+            </Button>
+
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await mezzoResetRematch.mutateAsync({ from: mapWindowFrom, to: mapWindowTo, limit: mapLimit });
+                  setLastFetchResult(res);
+                  setToast({ kind: "success", message: "Logs cleared. Rematch started." });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Failed to rematch") });
+                }
+              }}
+              disabled={mezzoResetRematch.isPending || Boolean(resetJob?.running)}
+              className="bg-zinc-900 border border-zinc-600 text-zinc-100 hover:bg-zinc-800"
+              title="Clear job logs/stats then run APIfootball matching again"
+            >
+              Clear Logs + Rematch
+            </Button>
+
+            <Button
+              onClick={async () => {
+                try {
+                  await mezzoResetStop.mutateAsync();
+                  setToast({ kind: "success", message: "Stop requested. The job will halt after the current step." });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Failed to request stop") });
+                }
+              }}
+              disabled={mezzoResetStop.isPending || !Boolean(resetJob?.running)}
+              className="bg-red-950/40 border border-red-800 text-red-200 hover:bg-red-950/60"
+              title={!resetJob?.running ? "Job is not running" : "Request job stop"}
+            >
+              <Square className="w-4 h-4 mr-2" />
+              Stop Reset
+            </Button>
+
+            <Button
+              onClick={async () => {
+                try {
+                  await mezzoResetForceStop.mutateAsync();
+                  setToast({ kind: "success", message: "Force stopped (cleared running state)." });
+                } catch (err: any) {
+                  setToast({ kind: "error", message: String(err?.message || "Failed to force stop") });
+                }
+              }}
+              disabled={mezzoResetForceStop.isPending}
+              className="bg-zinc-900 border border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+              title="Force stop (use if the server restarted mid-job)"
+            >
+              Force Stop
+            </Button>
           </div>
           <p className="text-xs text-zinc-500">Tip: fetch Football (501) + Basketball (504) to populate user sports.</p>
+
+          <div className="mt-2 bg-black/20 border border-zinc-800 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-zinc-400">Reset Odds Progress</div>
+              <div
+                className={`text-xs font-bold ${
+                  resetJob?.running && resetJob?.cancelRequested
+                    ? "text-orange-300"
+                    : resetJob?.running
+                      ? "text-amber-300"
+                      : resetJob?.step === "error"
+                        ? "text-red-300"
+                        : "text-zinc-300"
+                }`}
+              >
+                {resetJob?.running && resetJob?.cancelRequested ? "STOPPING" : resetJob?.running ? "RUNNING" : resetJob?.step === "error" ? "ERROR" : "IDLE"}
+              </div>
+            </div>
+            <div className="mt-2 h-2 rounded bg-zinc-800 overflow-hidden">
+              <div className="h-2 bg-brand" style={{ width: `${Math.max(0, Math.min(100, Number(resetJob?.progress || 0)))}%` }} />
+            </div>
+            <div className="mt-2 text-[11px] text-zinc-500">
+              {resetJob?.message || resetJob?.step || "—"} · {Math.max(0, Math.min(100, Number(resetJob?.progress || 0)))}%
+            </div>
+            {resetJob?.error?.message ? <div className="mt-2 text-[11px] text-red-200/90 whitespace-pre-wrap break-words">{resetJob.error.message}</div> : null}
+
+            {Array.isArray((resetJob as any)?.logs) && (resetJob as any).logs.length ? (
+              <details className="mt-3">
+                <summary className="text-[11px] text-zinc-400 cursor-pointer select-none">Job logs</summary>
+                <div className="mt-2 max-h-56 overflow-auto rounded-md border border-zinc-800 bg-black/30 p-2 font-mono text-[10px] text-zinc-200 whitespace-pre-wrap">
+                  {(resetJob as any).logs.join("\n")}
+                </div>
+              </details>
+            ) : null}
+
+            {Array.isArray((resetJob as any)?.stats?.apiFootballMapping?.unmatchedSamples) &&
+            (resetJob as any).stats.apiFootballMapping.unmatchedSamples.length ? (
+              <details className="mt-3">
+                <summary className="text-[11px] text-zinc-400 cursor-pointer select-none">
+                  APIfootball mapping unmatched ({(resetJob as any).stats.apiFootballMapping.unmatchedSamples.length})
+                </summary>
+                <div className="mt-2 max-h-56 overflow-auto rounded-md border border-zinc-800 bg-black/30 p-2 text-[11px] text-zinc-200">
+                  {(resetJob as any).stats.apiFootballMapping.unmatchedSamples.slice(0, 200).map((r: any, idx: number) => (
+                    <div key={idx} className="py-1 border-b border-zinc-800 last:border-b-0">
+                      <div className="text-zinc-300 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                        <span className="text-zinc-500">reason:</span> {String(r.reason)}{" "}
+                        <span className="text-zinc-500">fixtureKey:</span> {String(r.fixtureKey || "")}
+                        </div>
+                        {r.fixtureId ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-[10px] border-zinc-700 bg-zinc-950/40 hover:bg-zinc-900"
+                            onClick={async () => {
+                              try {
+                                const res = await mezzoDebugMatch.mutateAsync({ fixtureId: String(r.fixtureId), leagueIdsLimit: 30 });
+                                setDebugMatchResult(res);
+                                setToast({ kind: "success", message: "Debug candidates loaded." });
+                              } catch (err: any) {
+                                setToast({ kind: "error", message: String(err?.message || "Debug match failed") });
+                              }
+                            }}
+                            disabled={mezzoDebugMatch.isPending}
+                            title="Find closest APIfootball candidates for this fixture"
+                          >
+                            Debug
+                          </Button>
+                        ) : null}
+                      </div>
+                      <div className="text-zinc-400">
+                        {String(r.league || "")} · {String(r.home || "")} vs {String(r.away || "")} · {String(r.startsAt || "")}
+                      </div>
+                    </div>
+                  ))}
+                  {(resetJob as any).stats.apiFootballMapping.unmatchedSamples.length > 200 ? (
+                    <div className="pt-2 text-zinc-500">Showing first 200 only.</div>
+                  ) : null}
+                </div>
+              </details>
+            ) : null}
+
+            {debugMatchResult ? (
+              <details className="mt-3" open>
+                <summary className="text-[11px] text-zinc-400 cursor-pointer select-none">Debug match candidates</summary>
+                <div className="mt-2 max-h-72 overflow-auto rounded-md border border-zinc-800 bg-black/30 p-2 font-mono text-[10px] text-zinc-200 whitespace-pre-wrap">
+                  {JSON.stringify(debugMatchResult, null, 2)}
+                </div>
+              </details>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
 
@@ -395,6 +742,9 @@ export function DataFetchingPage() {
           </TabsTrigger>
           <TabsTrigger value="catalog" className="data-[state=active]:bg-zinc-900">
             <LibraryBig className="w-4 h-4" /> Catalog
+          </TabsTrigger>
+          <TabsTrigger value="apifootball-leagues" className="data-[state=active]:bg-zinc-900">
+            <Globe className="w-4 h-4" /> APIfootball Leagues
           </TabsTrigger>
           <TabsTrigger value="results" className="data-[state=active]:bg-zinc-900">
             <ListChecks className="w-4 h-4" /> Results
@@ -603,6 +953,28 @@ export function DataFetchingPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">Persist detail odds to DB</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean((cfgForm as any).detailPersistToDb)}
+                      onChange={(e) => setCfgForm((s: any) => ({ ...s, detailPersistToDb: e.target.checked }))}
+                    />
+                    <span className="text-xs text-zinc-500">Required for placing bets from Match Detail markets</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">Live betting enabled</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={Boolean((cfgForm as any).liveBettingEnabled)}
+                      onChange={(e) => setCfgForm((s: any) => ({ ...s, liveBettingEnabled: e.target.checked }))}
+                    />
+                    <span className="text-xs text-zinc-500">Controls live odds placement</span>
+                  </div>
+                </div>
                 <div className="space-y-1">
                   <div className="text-sm text-zinc-300">Prematch odds valid seconds</div>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -875,6 +1247,175 @@ export function DataFetchingPage() {
             </CardContent>
           </Card>
 
+        </TabsContent>
+
+        <TabsContent value="apifootball-leagues" className="space-y-6">
+          <Card className="bg-[#1A1A1A] border-zinc-800">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>APIfootball League Sync Config</span>
+                <div className="flex items-center gap-2">
+                  <Button onClick={() => apiLeaguesFetchNow.mutate()} disabled={apiLeaguesFetchNow.isPending} className="bg-zinc-800 hover:bg-zinc-700">
+                    {apiLeaguesFetchNow.isPending ? "Fetching..." : "Fetch Leagues Now"}
+                  </Button>
+                  <Button onClick={() => apiLeaguesEnableAll.mutate()} disabled={apiLeaguesEnableAll.isPending} className="bg-zinc-800 hover:bg-zinc-700">
+                    Enable All Active
+                  </Button>
+                  <Button onClick={() => apiLeaguesDisableAll.mutate()} disabled={apiLeaguesDisableAll.isPending} className="bg-zinc-800 hover:bg-zinc-700">
+                    Disable All
+                  </Button>
+                </div>
+              </CardTitle>
+              <CardDescription>Select which APIfootball leagues are used by get_events/get_odds (fixture mapping + results settlement).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400">Search</label>
+                  <Input
+                    value={apiLSearch}
+                    onChange={(e) => {
+                      setApiLPage(1);
+                      setApiLSearch(e.target.value);
+                    }}
+                    placeholder="League / country / id"
+                    className="w-[320px]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400">Sync Enabled</label>
+                  <Select
+                    value={apiLSyncEnabled === null ? "all" : apiLSyncEnabled ? "true" : "false"}
+                    onValueChange={(v) => {
+                      setApiLPage(1);
+                      setApiLSyncEnabled(v === "all" ? null : v === "true");
+                    }}
+                  >
+                    <SelectTrigger className="bg-zinc-900 border-zinc-700 w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Enabled</SelectItem>
+                      <SelectItem value="false">Disabled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-zinc-400">Active</label>
+                  <Select
+                    value={apiLActive === null ? "all" : apiLActive ? "true" : "false"}
+                    onValueChange={(v) => {
+                      setApiLPage(1);
+                      setApiLActive(v === "all" ? null : v === "true");
+                    }}
+                  >
+                    <SelectTrigger className="bg-zinc-900 border-zinc-700 w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Active</SelectItem>
+                      <SelectItem value="false">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  onClick={() => {
+                    const ids = Object.keys(apiLSelected).filter((k) => apiLSelected[k]);
+                    if (!ids.length) return;
+                    apiLeaguesBulk.mutate({ ids, patch: { isEnabledForSync: true } });
+                  }}
+                  disabled={apiLeaguesBulk.isPending}
+                  className="bg-brand text-black hover:bg-brand/80"
+                >
+                  Enable Selected
+                </Button>
+                <Button
+                  onClick={() => {
+                    const ids = Object.keys(apiLSelected).filter((k) => apiLSelected[k]);
+                    if (!ids.length) return;
+                    apiLeaguesBulk.mutate({ ids, patch: { isEnabledForSync: false } });
+                  }}
+                  disabled={apiLeaguesBulk.isPending}
+                  className="bg-zinc-800 hover:bg-zinc-700"
+                >
+                  Disable Selected
+                </Button>
+              </div>
+
+              <div className="overflow-auto max-h-[520px] border border-zinc-800 rounded-xl">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-zinc-400 border-b border-zinc-800">
+                      <th className="py-2 px-3">Sel</th>
+                      <th className="py-2 pr-3">Country</th>
+                      <th className="py-2 pr-3">League</th>
+                      <th className="py-2 pr-3">API ID</th>
+                      <th className="py-2 pr-3">Sync</th>
+                      <th className="py-2 pr-3">Active</th>
+                      <th className="py-2 pr-3">Fixtures</th>
+                      <th className="py-2 pr-3">Mapped</th>
+                      <th className="py-2 pr-3">With Odds</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {apiLeagues.isLoading ? (
+                      <tr>
+                        <td colSpan={9} className="py-8 px-3 text-zinc-500">
+                          Loading...
+                        </td>
+                      </tr>
+                    ) : (apiLeagues.data?.leagues || []).length ? (
+                      (apiLeagues.data.leagues || []).map((l: any) => (
+                        <tr key={l.id} className="border-b border-zinc-900">
+                          <td className="py-2 px-3">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(apiLSelected[l.id])}
+                              onChange={(e) => setApiLSelected((s) => ({ ...s, [l.id]: e.target.checked }))}
+                            />
+                          </td>
+                          <td className="py-2 pr-3 text-zinc-200">{l.countryName || "-"}</td>
+                          <td className="py-2 pr-3 text-white">{l.name || "-"}</td>
+                          <td className="py-2 pr-3 text-zinc-300 font-mono">{String(l.apiFootballLeagueId || "-")}</td>
+                          <td className="py-2 pr-3">
+                            {l.isEnabledForSync ? <Badge className="bg-emerald-700">ON</Badge> : <Badge className="bg-zinc-700">OFF</Badge>}
+                          </td>
+                          <td className="py-2 pr-3">
+                            {l.isActive ? <Badge className="bg-emerald-700">YES</Badge> : <Badge className="bg-zinc-700">NO</Badge>}
+                          </td>
+                          <td className="py-2 pr-3 text-zinc-300">{l.fixturesCount ?? 0}</td>
+                          <td className="py-2 pr-3 text-zinc-300">{l.fixturesWithMapping ?? 0}</td>
+                          <td className="py-2 pr-3 text-zinc-300">{l.fixturesWithOddsCount ?? 0}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} className="py-8 px-3 text-zinc-500">
+                          No leagues found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex items-center justify-end gap-2">
+                <Button onClick={() => setApiLPage((p) => Math.max(1, p - 1))} disabled={apiLPage <= 1} className="bg-zinc-800 hover:bg-zinc-700">
+                  Prev
+                </Button>
+                <Button
+                  onClick={() => setApiLPage((p) => p + 1)}
+                  disabled={!apiLeagues.data || (apiLeagues.data?.leagues || []).length < apiLLimit}
+                  className="bg-zinc-800 hover:bg-zinc-700"
+                >
+                  Next
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="catalog" className="space-y-6">

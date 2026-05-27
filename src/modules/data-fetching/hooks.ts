@@ -122,6 +122,55 @@ export function useAdminMezzoFetchNow() {
   });
 }
 
+export function useAdminMezzoResetOddsStatus() {
+  return useQuery({
+    queryKey: ["mezzo-reset-odds-status"],
+    // React Query will pass an AbortSignal; apiRequest/fetch will cancel the in-flight request
+    // when a new refetch starts, preventing a pile-up of pending requests.
+    queryFn: ({ signal }) => (dataFetchingApi.mezzoResetOddsStatus as any)({ signal }),
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    // Poll only while the job is running; slower interval to reduce load.
+    refetchInterval: (q) => ((q as any)?.state?.data?.running ? 3000 : false),
+  });
+}
+
+export function useAdminMezzoResetOddsStart() {
+  return useMutation({
+    mutationFn: (sportId: number) => dataFetchingApi.mezzoResetOddsStart(sportId),
+  });
+}
+
+export function useAdminMezzoResetOddsMapOnly() {
+  return useMutation({
+    mutationFn: (body: { from?: string; to?: string; limit?: number } = {}) => dataFetchingApi.mezzoResetOddsMapOnly(body),
+  });
+}
+
+export function useAdminMezzoResetOddsRematch() {
+  return useMutation({
+    mutationFn: (body: { from?: string; to?: string; limit?: number } = {}) => dataFetchingApi.mezzoResetOddsRematch(body),
+  });
+}
+
+export function useAdminMezzoResetOddsDebugMatch() {
+  return useMutation({
+    mutationFn: (body: { fixtureId: string; leagueIdsLimit?: number }) => dataFetchingApi.mezzoResetOddsDebugMatch(body),
+  });
+}
+
+export function useAdminMezzoResetOddsStop() {
+  return useMutation({
+    mutationFn: () => dataFetchingApi.mezzoResetOddsStop(),
+  });
+}
+
+export function useAdminMezzoResetOddsForceStop() {
+  return useMutation({
+    mutationFn: () => dataFetchingApi.mezzoResetOddsForceStop(),
+  });
+}
+
 export function useAdminApiFootballSyncFixtures() {
   const qc = useQueryClient();
   return useMutation({
@@ -129,5 +178,46 @@ export function useAdminApiFootballSyncFixtures() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["odds-latest"] });
     }
+  });
+}
+
+export function useAdminApiFootballLeaguesList(params: { page: number; limit: number; search: string; syncEnabled: boolean | null; active: boolean | null }) {
+  return useQuery({
+    queryKey: ["apifootball-leagues", params],
+    queryFn: () => dataFetchingApi.apiFootballLeaguesList(params),
+    refetchOnWindowFocus: false,
+    staleTime: 10_000,
+  });
+}
+
+export function useAdminApiFootballLeaguesFetchNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => dataFetchingApi.apiFootballLeaguesFetchNow(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apifootball-leagues"] }),
+  });
+}
+
+export function useAdminApiFootballLeaguesPatchBulk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { ids: string[]; patch: { isEnabledForSync?: boolean; isActive?: boolean } }) => dataFetchingApi.apiFootballLeaguesPatchBulk(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apifootball-leagues"] }),
+  });
+}
+
+export function useAdminApiFootballLeaguesEnableAll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => dataFetchingApi.apiFootballLeaguesEnableAll(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apifootball-leagues"] }),
+  });
+}
+
+export function useAdminApiFootballLeaguesDisableAll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => dataFetchingApi.apiFootballLeaguesDisableAll(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["apifootball-leagues"] }),
   });
 }

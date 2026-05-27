@@ -10,6 +10,56 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { apiRequest } from "../lib/apiClient";
 
 type AdminBetsResp = { count: number; rows: any[] };
+type CashbackPreviewResp = {
+  slip: { id: string; status: string; result: string; stake: number };
+  counts: { totalSelections: number; lostSelections: number; pendingSelections: number; wonSelections: number; voidSelections: number; manualReviewSelections: number };
+  config: null | { minSelections: number; maxLostSelections: number; cashbackPercent: number; maxCashbackAmount: number | null };
+  eligible: boolean;
+  cashbackAmount: number;
+};
+
+function CashbackPreview({ betSlipId, enabled }: { betSlipId: string; enabled: boolean }) {
+  const q = useQuery({
+    queryKey: ["cashback-preview", betSlipId],
+    queryFn: async () => apiRequest<CashbackPreviewResp>(`/api/admin/betslips/${betSlipId}/cashback-preview`),
+    enabled,
+    staleTime: 5_000,
+  });
+
+  if (!enabled) return null;
+  if (q.isLoading) return <div className="text-[11px] text-zinc-500">Loading cashback preview…</div>;
+  if (q.isError) return <div className="text-[11px] text-red-400">Failed to load cashback preview.</div>;
+
+  const data = q.data;
+  if (!data) return null;
+
+  const cfg = data.config;
+  return (
+    <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+        <div className="text-xs text-zinc-300 font-bold">Cashback</div>
+        <Badge className={data.eligible ? "bg-emerald-500 text-black" : "bg-zinc-800 text-zinc-300 border-zinc-700"}>
+          {data.eligible ? `ELIGIBLE • ${data.cashbackAmount.toFixed(2)}` : "NOT ELIGIBLE"}
+        </Badge>
+      </div>
+      <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-zinc-400">
+        <div>Total: <span className="text-white">{data.counts.totalSelections}</span></div>
+        <div>Lost: <span className="text-white">{data.counts.lostSelections}</span></div>
+        <div>Pending: <span className="text-white">{data.counts.pendingSelections}</span></div>
+        <div>Stake: <span className="text-white">{Number(data.slip.stake || 0).toFixed(2)}</span></div>
+      </div>
+      <div className="mt-2 text-[11px] text-zinc-500">
+        {cfg ? (
+          <span>
+            Rule: min {cfg.minSelections} selections, max {cfg.maxLostSelections} lost, {cfg.cashbackPercent}% cashback{cfg.maxCashbackAmount !== null ? ` (cap ${cfg.maxCashbackAmount})` : ""}.
+          </span>
+        ) : (
+          <span>No cashback config set.</span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export const BetManagementPage = ({ role }: { role: UserRole }) => {
   const qc = useQueryClient();
@@ -284,6 +334,9 @@ export const BetManagementPage = ({ role }: { role: UserRole }) => {
                           <tr key={r.id + ":expanded"} className="bg-zinc-900/20 border-b border-zinc-800/60">
                             <td colSpan={11} className="px-6 py-4">
                               <div className="text-xs text-zinc-400 mb-2">Selections</div>
+                              <div className="mb-3">
+                                <CashbackPreview betSlipId={r.id} enabled={isExpanded} />
+                              </div>
                               <div className="space-y-2">
                                 {r.selections.map((s: any) => (
                                   <div key={String(s.id)} className="flex flex-col md:flex-row md:items-center gap-2 justify-between bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-3">
@@ -338,4 +391,3 @@ export const BetManagementPage = ({ role }: { role: UserRole }) => {
     </div>
   );
 };
-

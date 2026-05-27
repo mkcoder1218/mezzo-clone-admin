@@ -22,10 +22,13 @@ import { UserHierarchyPage } from "./components/UserHierarchyPage";
 import { BetManagementPage } from "./components/BetManagement";
 import { RedeemTicketsPage } from "./components/RedeemTicketsPage";
 import { CashbackConfigPage } from "./components/CashbackConfigPage";
+import { SettlementConfigPage } from "./components/SettlementConfigPage";
 import { ResultsRunNowPage } from "./components/ResultsRunNowPage";
 import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
 import { ApiFootballEventsLookupPage } from "./components/ApiFootballEventsLookupPage";
 import { ResultsUnsettledPage } from "./components/ResultsUnsettledPage";
+import { UnmappedFixturesPage } from "./components/UnmappedFixturesPage";
+import { MappedFixturesPage } from "./components/MappedFixturesPage";
 import { ShopManagementPage } from "./components/ShopManagement";
 import { AgentsPage } from "./components/AgentsPage";
 import { RolesPage } from "./components/RolesPage";
@@ -161,6 +164,7 @@ export default function App() {
                     <Route path="/bet-queue" element={<BetQueuePage />} />
                     <Route path="/redeem" element={<RedeemTicketsPage />} />
                     <Route path="/cashback-config" element={<CashbackConfigPage />} />
+                    <Route path="/settlement-config" element={<SettlementConfigPage />} />
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
                     <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />
                     <Route path="/results-diagnostics" element={<ResultsDiagnosticsPage />} />
@@ -267,6 +271,15 @@ export default function App() {
                           <div className="p-8 text-zinc-400">Forbidden.</div>
                         )
                       }
+                    />
+
+                    <Route
+                      path="/unmapped-fixtures"
+                      element={currentRole === "SUPER_ADMIN" ? <UnmappedFixturesPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>}
+                    />
+                    <Route
+                      path="/mapped-fixtures"
+                      element={currentRole === "SUPER_ADMIN" ? <MappedFixturesPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>}
                     />
 
                     <Route
