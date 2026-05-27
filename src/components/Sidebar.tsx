@@ -65,6 +65,7 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
         { name: "Results", path: "/results", icon: ListChecks, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
         { name: "Results Run Now", path: "/results-run-now", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Unsettled Slips", path: "/results-unsettled", icon: Bug, roles: ["SUPER_ADMIN"] },
+        { name: "Unsettled Markets", path: "/results-unsettled-markets", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "Results Diagnostics", path: "/results-diagnostics", icon: Bug, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Events", path: "/apifootball-events", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Unmapped Fixtures", path: "/unmapped-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },

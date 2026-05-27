@@ -27,6 +27,7 @@ import { ResultsRunNowPage } from "./components/ResultsRunNowPage";
 import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
 import { ApiFootballEventsLookupPage } from "./components/ApiFootballEventsLookupPage";
 import { ResultsUnsettledPage } from "./components/ResultsUnsettledPage";
+import { UnsettledMarketsPage } from "./components/UnsettledMarketsPage";
 import { UnmappedFixturesPage } from "./components/UnmappedFixturesPage";
 import { MappedFixturesPage } from "./components/MappedFixturesPage";
 import { ShopManagementPage } from "./components/ShopManagement";
@@ -167,6 +168,7 @@ export default function App() {
                     <Route path="/settlement-config" element={<SettlementConfigPage />} />
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
                     <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />
+                    <Route path="/results-unsettled-markets" element={<UnsettledMarketsPage />} />
                     <Route path="/results-diagnostics" element={<ResultsDiagnosticsPage />} />
                     <Route path="/apifootball-events" element={<ApiFootballEventsLookupPage />} />
                     <Route path="/results" element={<ResultsPage />} />
