@@ -22,6 +22,9 @@ import { UserHierarchyPage } from "./components/UserHierarchyPage";
 import { BetManagementPage } from "./components/BetManagement";
 import { RedeemTicketsPage } from "./components/RedeemTicketsPage";
 import { CashbackConfigPage } from "./components/CashbackConfigPage";
+import { CashbackBonusDashboardPage } from "./components/CashbackBonusDashboardPage";
+import { CashbackBonusConfigurationsPage } from "./components/CashbackBonusConfigurationsPage";
+import { CashbackBonusHistoryPage } from "./components/CashbackBonusHistoryPage";
 import { SettlementConfigPage } from "./components/SettlementConfigPage";
 import { ResultsRunNowPage } from "./components/ResultsRunNowPage";
 import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
@@ -58,6 +61,7 @@ export default function App() {
   const [displayName, setDisplayName] = useState("Operator");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [booting, setBooting] = useState(true);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -70,6 +74,7 @@ export default function App() {
       try {
         const me = await authApi.me();
         const backendRole = me.user?.Role?.name;
+        const perms = Array.isArray(me.user?.Role?.Permissions) ? me.user.Role.Permissions.map((p) => p.key).filter(Boolean) : [];
 
         const roleMap: Record<string, UserRole> = {
           super_admin: "SUPER_ADMIN",
@@ -91,8 +96,9 @@ export default function App() {
 
         setIsAuthenticated(true);
         setCurrentRole(uiRole);
+        setPermissions(perms);
         setDisplayName(me.user.displayName || me.user.email || "Operator");
-        localStorage.setItem("kingsbet_session", JSON.stringify({ role: uiRole, displayName: me.user.displayName || me.user.email || "Operator" }));
+        localStorage.setItem("kingsbet_session", JSON.stringify({ role: uiRole, displayName: me.user.displayName || me.user.email || "Operator", permissions: perms }));
       } catch {
         // Invalid token or API not reachable
         localStorage.removeItem("accessToken");
@@ -115,10 +121,13 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     setDisplayName("Operator");
+    setPermissions([]);
     localStorage.removeItem("kingsbet_session");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
   };
+
+  const hasPermission = (key: string) => permissions.includes(key);
 
   if (booting) {
     return <div className="min-h-screen bg-[#0A0A0A] text-zinc-400 flex items-center justify-center">Loading...</div>;
@@ -131,7 +140,7 @@ export default function App() {
   return (
     <Router>
       <div className="flex min-h-screen bg-[#0A0A0A] selection:bg-brand selection:text-black">
-        <Sidebar currentRole={currentRole} onLogout={handleLogout} displayName={displayName} />
+        <Sidebar currentRole={currentRole} onLogout={handleLogout} displayName={displayName} permissions={permissions} />
         
         <main className="flex-1 flex flex-col min-w-0">
           <TopNav currentRole={currentRole} onLogout={handleLogout} displayName={displayName} />
@@ -165,6 +174,9 @@ export default function App() {
                     <Route path="/bet-queue" element={<BetQueuePage />} />
                     <Route path="/redeem" element={<RedeemTicketsPage />} />
                     <Route path="/cashback-config" element={<CashbackConfigPage />} />
+                    <Route path="/cashback" element={hasPermission("cashback.view") ? <CashbackBonusDashboardPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
+                    <Route path="/cashback/configurations" element={hasPermission("cashback.view") ? <CashbackBonusConfigurationsPage canManage={hasPermission("cashback.manage")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
+                    <Route path="/cashback/history" element={hasPermission("cashback.view") ? <CashbackBonusHistoryPage canRetry={hasPermission("cashback.retry")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
                     <Route path="/settlement-config" element={<SettlementConfigPage />} />
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
                     <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />

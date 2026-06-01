@@ -10,5 +10,12 @@ export const authApi = {
     }),
 
   me: () =>
-    apiRequest<{ user: { id: string; displayName?: string; email?: string; Role?: { name: string } } }>("/api/users/me")
+    apiRequest<{
+      user: {
+        id: string;
+        displayName?: string;
+        email?: string;
+        Role?: { name: string; Permissions?: { key: string }[] };
+      };
+    }>("/api/users/me")
 };

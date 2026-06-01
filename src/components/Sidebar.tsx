@@ -22,11 +22,12 @@ import {
 import { UserRole } from "../types";
 import { useMemo, useState } from "react";
 
-export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: UserRole, onLogout: () => void, displayName?: string }) => {
+export const Sidebar = ({ currentRole, onLogout, displayName, permissions }: { currentRole: UserRole, onLogout: () => void, displayName?: string, permissions?: string[] }) => {
   const location = useLocation();
   const [oddsExpanded, setOddsExpanded] = useState(true);
   const [opsExpanded, setOpsExpanded] = useState(true);
   const [adminExpanded, setAdminExpanded] = useState(true);
+  const hasPermission = (key: string) => (permissions || []).includes(key);
   
   const topItems = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
@@ -80,13 +81,14 @@ export const Sidebar = ({ currentRole, onLogout, displayName }: { currentRole: U
     () =>
       [
         { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
+        ...(hasPermission("cashback.view") ? [{ name: "Cashback Bonus", path: "/cashback", icon: Target, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] as any }] : []),
         { name: "Cashback Config", path: "/cashback-config", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Settlement Config", path: "/settlement-config", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },
         { name: "Settings", path: "/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
         { name: "Debug Tools", path: "/debug-tools", icon: Wrench, roles: ["SUPER_ADMIN"] },
       ].filter((i) => i.roles.includes(currentRole)),
-    [currentRole]
+    [currentRole, permissions]
   );
   const adminActive = adminItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
 
