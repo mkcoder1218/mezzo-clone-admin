@@ -1,17 +1,28 @@
 import { 
   Bell, 
   ChevronRight,
-  LogOut
+  LogOut,
+  Menu
 } from "lucide-react";
 import { UserRole } from "../types";
 
-export const TopNav = ({ currentRole, onLogout, displayName }: { 
+export const TopNav = ({ currentRole, onLogout, displayName, onOpenSidebar }: {
   currentRole: UserRole, 
   onLogout: () => void,
-  displayName: string
+  displayName: string,
+  onOpenSidebar?: () => void
 }) => {
   return (
-    <header className="h-20 border-b border-zinc-800/50 bg-[#0A0A0A] px-8 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-16 sm:h-20 border-b border-zinc-800/50 bg-[#0A0A0A] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-50">
+      <button
+        type="button"
+        onClick={onOpenSidebar}
+        className="mr-3 p-2 text-zinc-400 hover:text-white lg:hidden"
+        title="Open menu"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
       <div className="hidden md:flex items-center text-zinc-500 text-[10px] font-extrabold uppercase tracking-widest gap-2">
            <span>Central Command</span>
            <ChevronRight className="w-4 h-4 text-zinc-700" />
@@ -20,8 +31,8 @@ export const TopNav = ({ currentRole, onLogout, displayName }: {
            </span>
       </div>
 
-      <div className="flex items-center gap-6">
-        <div className="h-8 w-[1px] bg-zinc-800" />
+      <div className="flex items-center gap-3 sm:gap-6 ml-auto">
+        <div className="hidden sm:block h-8 w-[1px] bg-zinc-800" />
 
         <button className="p-2 text-zinc-400 hover:text-brand transition-colors relative group">
           <Bell className="w-5 h-5 group-hover:animate-shake" />

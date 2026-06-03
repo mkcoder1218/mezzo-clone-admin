@@ -62,6 +62,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [booting, setBooting] = useState(true);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -122,6 +123,7 @@ export default function App() {
     setIsAuthenticated(false);
     setDisplayName("Operator");
     setPermissions([]);
+    setSidebarOpen(false);
     localStorage.removeItem("kingsbet_session");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
@@ -140,14 +142,35 @@ export default function App() {
   return (
     <Router>
       <div className="flex min-h-screen bg-[#0A0A0A] selection:bg-brand selection:text-black">
-        <Sidebar currentRole={currentRole} onLogout={handleLogout} displayName={displayName} permissions={permissions} />
+        {sidebarOpen ? (
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] lg:hidden"
+          />
+        ) : null}
+
+        <Sidebar
+          currentRole={currentRole}
+          onLogout={handleLogout}
+          displayName={displayName}
+          permissions={permissions}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
         
         <main className="flex-1 flex flex-col min-w-0">
-          <TopNav currentRole={currentRole} onLogout={handleLogout} displayName={displayName} />
+          <TopNav
+            currentRole={currentRole}
+            onLogout={handleLogout}
+            displayName={displayName}
+            onOpenSidebar={() => setSidebarOpen(true)}
+          />
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-8 md:p-12 max-w-7xl mx-auto w-full">
+            <div className="p-4 sm:p-6 md:p-8 xl:p-12 max-w-7xl mx-auto w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={window.location.hash + currentRole}
