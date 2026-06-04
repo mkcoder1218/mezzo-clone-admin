@@ -98,7 +98,7 @@ export const Sidebar = ({
     () =>
       [
         { name: "Banners", path: "/banners", icon: Target, roles: ["SUPER_ADMIN"] },
-        ...(hasPermission("cashback.view") ? [{ name: "Cashback Bonus", path: "/cashback", icon: Target, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] as any }] : []),
+        ...(hasPermission("cashback.view") ? [{ name: "Cashback Bonus", path: "/cashback", icon: Target, roles: ["SUPER_ADMIN"] }] : []),
         { name: "Cashback Config", path: "/cashback-config", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Settlement Config", path: "/settlement-config", icon: Target, roles: ["SUPER_ADMIN"] },
         { name: "Roles", path: "/roles", icon: Settings, roles: ["SUPER_ADMIN"] },

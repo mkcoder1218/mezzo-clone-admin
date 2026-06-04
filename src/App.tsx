@@ -197,9 +197,9 @@ export default function App() {
                     <Route path="/bet-queue" element={<BetQueuePage />} />
                     <Route path="/redeem" element={<RedeemTicketsPage />} />
                     <Route path="/cashback-config" element={<CashbackConfigPage />} />
-                    <Route path="/cashback" element={hasPermission("cashback.view") ? <CashbackBonusDashboardPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
-                    <Route path="/cashback/configurations" element={hasPermission("cashback.view") ? <CashbackBonusConfigurationsPage canManage={hasPermission("cashback.manage")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
-                    <Route path="/cashback/history" element={hasPermission("cashback.view") ? <CashbackBonusHistoryPage canRetry={hasPermission("cashback.retry")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
+                    <Route path="/cashback" element={currentRole === "SUPER_ADMIN" && hasPermission("cashback.view") ? <CashbackBonusDashboardPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
+                    <Route path="/cashback/configurations" element={currentRole === "SUPER_ADMIN" && hasPermission("cashback.view") ? <CashbackBonusConfigurationsPage canManage={hasPermission("cashback.manage")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
+                    <Route path="/cashback/history" element={currentRole === "SUPER_ADMIN" && hasPermission("cashback.view") ? <CashbackBonusHistoryPage canRetry={hasPermission("cashback.retry")} /> : <div className="p-8 text-zinc-400">Forbidden.</div>} />
                     <Route path="/settlement-config" element={<SettlementConfigPage />} />
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
                     <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />
