@@ -259,7 +259,7 @@ const RecentTickets = ({ rows }: { rows: any[] }) => (
 
 export const DashboardPage = ({ role }: { role: UserRole }) => {
   const isSuper = role === "SUPER_ADMIN";
-  const isAgent = role === "AGENT";
+  const isNetworkManager = role === "SUPER_ADMIN" || role === "SUPER_AGENT" || role === "AGENT";
 
   const dashboard = useQuery({
     queryKey: ["admin-dashboard"],
@@ -276,6 +276,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
   const metrics = dashboard.data?.metrics || {};
   const trend = (dashboard.data as any)?.trend?.dailyStake as { label: string; value: number }[] | undefined;
   const chartData = (trend && Array.isArray(trend) ? trend : []).map((d) => ({ name: d.label, value: Number(d.value || 0) }));
+  const formatMoney = (value: unknown) => Number(value || 0).toFixed(2);
 
   if (dashboard.isLoading) {
     return (
@@ -296,8 +297,8 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {(isSuper || isAgent) && <Skeleton className="h-[520px] w-full bg-zinc-900/30" />}
-          <Card className={`${(isSuper || isAgent) ? "lg:col-span-2" : "lg:col-span-3"} bg-[#1A1A1A] border-none shadow-2xl`}>
+          {isNetworkManager && <Skeleton className="h-[520px] w-full bg-zinc-900/30" />}
+          <Card className={`${isNetworkManager ? "lg:col-span-2" : "lg:col-span-3"} bg-[#1A1A1A] border-none shadow-2xl`}>
             <CardHeader>
               <Skeleton className="h-5 w-44" />
               <Skeleton className="mt-2 h-3 w-64" />
@@ -352,7 +353,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
           </h1>
           <p className="text-zinc-400 mt-1">
             {isSuper ? "Global command telemetry for the Kings Bet network." : 
-             isAgent ? "Portfolio performance and credit allocation metrics." :
+             role === "SUPER_AGENT" || role === "AGENT" ? "Portfolio performance and credit allocation metrics." :
              "Shop terminal status and localized betting volume."}
           </p>
         </div>
@@ -362,20 +363,20 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard title="Gross Volume" value={Number(metrics.stakeSum || 0).toFixed(2)} change="—" icon={DollarSign} />
-        <MetricCard title="Active Users" value={String(metrics.usersCount ?? "—")} change="—" icon={Users} />
-        {isSuper || isAgent ? (
-          <MetricCard title="Total Payout" value={Number(metrics.payoutSum || 0).toFixed(2)} change="â€”" icon={Wallet} />
+        <MetricCard title="Gross Volume" value={formatMoney(metrics.stakeSum)} change="-" icon={DollarSign} />
+        <MetricCard title="Active Users" value={String(metrics.usersCount ?? "-")} change="-" icon={Users} />
+        {isNetworkManager ? (
+          <MetricCard title={isSuper ? "Total Payout" : "Credit Limit"} value={formatMoney(isSuper ? metrics.payoutSum : metrics.creditLimit)} change="-" icon={Wallet} />
         ) : (
-          <MetricCard title="Shop Balance" value="$12,000" change="-1.2%" icon={CreditCard} />
+          <MetricCard title="Shop Balance" value={formatMoney(metrics.balance)} change="-" icon={CreditCard} />
         )}
-        <MetricCard title="Tickets" value={String(metrics.slipsCount ?? "—")} change="—" icon={Receipt} />
+        <MetricCard title="Tickets" value={String(metrics.slipsCount ?? "-")} change="-" icon={Receipt} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {(isSuper || isAgent) && <CreditDistribution />}
+        {isNetworkManager && <CreditDistribution />}
 
-        <Card className={`${(isSuper || isAgent) ? 'lg:col-span-2' : 'lg:col-span-3'} bg-[#1A1A1A] border-none shadow-2xl`}>
+        <Card className={`${isNetworkManager ? 'lg:col-span-2' : 'lg:col-span-3'} bg-[#1A1A1A] border-none shadow-2xl`}>
           <BettingChart />
           <CardContent className="h-[400px] w-full pt-4">
              <ResponsiveContainer width="100%" height="100%">

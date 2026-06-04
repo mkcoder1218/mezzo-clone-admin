@@ -45,7 +45,7 @@ export const Sidebar = ({
   const hasPermission = (key: string) => (permissions || []).includes(key);
   
   const topItems = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
+    { name: "Analytics", path: "/", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
     { name: "Users", path: "/users", icon: Users, roles: ["SUPER_ADMIN", "AGENT", "SHOP_OWNER"] },
     { name: "Agents", path: "/agents", icon: Shield, roles: ["SUPER_ADMIN", "SUPER_AGENT"] },
     { name: "Staff", path: "/staff", icon: Users, roles: ["SUPER_AGENT", "AGENT", "SHOP_OWNER"] },
