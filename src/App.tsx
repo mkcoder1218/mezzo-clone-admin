@@ -186,7 +186,7 @@ export default function App() {
                     <Route
                       path="/staff"
                       element={
-                        currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
                           <StaffPage role={currentRole} />
                         ) : (
                           <div className="p-8 text-zinc-400">Forbidden.</div>

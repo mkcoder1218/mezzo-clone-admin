@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, RefreshCcw } from "lucide-react";
+import { Ban, CheckCircle2, Plus, RefreshCcw } from "lucide-react";
 import { apiRequest } from "../lib/apiClient";
 import type { UserRole } from "../types";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,20 @@ export function StaffPage({ role }: { role: UserRole }) {
     }
   }
 
+  async function setCashierEnabled(user: StaffRecord, isActive: boolean) {
+    setError(null);
+    setItems((current) => current.map((item) => (item.id === user.id ? { ...item, isActive } : item)));
+    try {
+      await apiRequest(`/api/staff/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isActive }),
+      });
+    } catch (e: any) {
+      setItems((current) => current.map((item) => (item.id === user.id ? { ...item, isActive: user.isActive } : item)));
+      setError(e?.message || "Failed to update cashier status");
+    }
+  }
+
   return (
     <div className="space-y-8">
       <header className="flex items-start justify-between gap-6">
@@ -215,20 +229,31 @@ export function StaffPage({ role }: { role: UserRole }) {
                   </TableCell>
                   <TableCell className="text-zinc-300">{new Date(u.createdAt).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="bg-zinc-800 hover:bg-zinc-700 text-white"
-                      onClick={() => {
-                        setEditId(u.id);
-                        setEditDisplayName(u.displayName || "");
-                        setEditPassword("");
-                        setEditCommissionPercent((u as any).commissionPercent == null ? "" : String((u as any).commissionPercent));
-                        setEditOpen(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className={u.isActive ? "bg-red-950/60 hover:bg-red-900 text-red-100" : "bg-emerald-950/60 hover:bg-emerald-900 text-emerald-100"}
+                        onClick={() => setCashierEnabled(u, !u.isActive)}
+                      >
+                        {u.isActive ? <Ban className="w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                        {u.isActive ? "Disable" : "Enable"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                        onClick={() => {
+                          setEditId(u.id);
+                          setEditDisplayName(u.displayName || "");
+                          setEditPassword("");
+                          setEditCommissionPercent((u as any).commissionPercent == null ? "" : String((u as any).commissionPercent));
+                          setEditOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
