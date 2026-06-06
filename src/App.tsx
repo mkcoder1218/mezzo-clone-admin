@@ -240,6 +240,16 @@ export default function App() {
                       }
                     />
                     <Route
+                      path="/money-made"
+                      element={
+                        currentRole === "SUPER_ADMIN" || currentRole === "SUPER_AGENT" || currentRole === "AGENT" || currentRole === "SHOP_OWNER" ? (
+                          <ReportsPage defaultTab="money" />
+                        ) : (
+                          <div className="p-8 text-zinc-400">Forbidden.</div>
+                        )
+                      }
+                    />
+                    <Route
                       path="/workers"
                       element={
                         currentRole === "SUPER_ADMIN" ? <WorkersPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>

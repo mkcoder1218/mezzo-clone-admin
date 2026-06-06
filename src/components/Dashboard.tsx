@@ -76,7 +76,17 @@ const MetricCardSkeleton = () => (
   </Card>
 );
 
-const CreditDistribution = () => (
+function formatMoney(value: unknown) {
+  return Number(value || 0).toFixed(2);
+}
+
+const CreditDistribution = ({ meLimit, rows }: { meLimit: number; rows: any[] }) => {
+  const distributed = rows.reduce((sum, row) => sum + Number(row.limit?.totalLimit || 0), 0);
+  const total = meLimit + distributed;
+  const utilization = total > 0 ? Math.min(100, Math.round((distributed / total) * 100)) : 0;
+  const topRows = [...rows].sort((a, b) => Number(b.limit?.totalLimit || 0) - Number(a.limit?.totalLimit || 0)).slice(0, 3);
+
+  return (
   <Card className="bg-[#1A1A1A] border-none shadow-2xl relative overflow-hidden">
       <div className="absolute top-0 right-0 p-6 opacity-5">
           <ShieldCheck className="w-24 h-24 text-brand" />
@@ -92,40 +102,43 @@ const CreditDistribution = () => (
           <div className="space-y-2">
               <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-500">
                   <span>Limit Utilization</span>
-                  <span className="text-brand">82%</span>
+                  <span className="text-brand">{utilization}%</span>
               </div>
               <div className="h-2 bg-zinc-800 rounded-full overflow-hidden border border-zinc-900">
-                  <div className="h-full bg-brand w-[82%] shadow-[0_0_8px_rgba(204,255,0,0.4)]" />
+                  <div className="h-full bg-brand shadow-[0_0_8px_rgba(204,255,0,0.4)]" style={{ width: `${utilization}%` }} />
               </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4">
               <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Available</p>
-                  <p className="text-xl font-bold text-white tracking-tighter">$180,000</p>
+                  <p className="text-xl font-bold text-white tracking-tighter">{formatMoney(meLimit)}</p>
               </div>
               <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Distributed</p>
-                  <p className="text-xl font-bold text-white tracking-tighter">$820,000</p>
+                  <p className="text-xl font-bold text-white tracking-tighter">{formatMoney(distributed)}</p>
               </div>
           </div>
 
           <div className="space-y-3 pt-2">
-              {[
-                  { name: "Top Agent Alpha", val: "$450k", p: 90 },
-                  { name: "Regional Node B", val: "$120k", p: 45 },
-                  { name: "Direct Shop X", val: "$25k", p: 12 },
-              ].map((sub, i) => (
-                  <div key={i} className="flex flex-col gap-1.5 p-3 rounded-lg border border-zinc-800/80 bg-zinc-900/30">
+              {topRows.length ? topRows.map((sub) => {
+                  const value = Number(sub.limit?.totalLimit || 0);
+                  const percent = distributed > 0 ? Math.min(100, Math.round((value / distributed) * 100)) : 0;
+                  return (
+                  <div key={sub.id} className="flex flex-col gap-1.5 p-3 rounded-lg border border-zinc-800/80 bg-zinc-900/30">
                       <div className="flex justify-between text-xs">
-                          <span className="font-medium text-white">{sub.name}</span>
-                          <span className="font-bold text-brand">{sub.val}</span>
+                          <span className="font-medium text-white">{sub.displayName || sub.phoneNumber || sub.id}</span>
+                          <span className="font-bold text-brand">{formatMoney(value)}</span>
                       </div>
                       <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-brand/40" style={{ width: `${sub.p}%` }} />
+                          <div className="h-full bg-brand/40" style={{ width: `${percent}%` }} />
                       </div>
                   </div>
-              ))}
+              )}) : (
+                <div className="p-3 rounded-lg border border-zinc-800/80 bg-zinc-900/30 text-sm text-zinc-500">
+                  No distributed limits yet.
+                </div>
+              )}
           </div>
       </CardContent>
       <CardFooter>
@@ -134,7 +147,8 @@ const CreditDistribution = () => (
           </Button>
       </CardFooter>
   </Card>
-);
+  );
+};
 
 const BettingChart = () => (
     <CardHeader>
@@ -186,6 +200,58 @@ const SystemStatusMonitor = () => (
       </CardContent>
   </Card>
 );
+
+const LiveTicketStatus = ({ metrics }: { metrics: any }) => {
+  const slips = Number(metrics.slipsCount || 0);
+  const pending = Number(metrics.pendingCount || 0);
+  const settled = Number(metrics.settledCount || 0);
+  const pendingPct = slips > 0 ? Math.min(100, Math.round((pending / slips) * 100)) : 0;
+  const settledPct = slips > 0 ? Math.min(100, Math.round((settled / slips) * 100)) : 0;
+
+  return (
+    <Card className="bg-[#1A1A1A] border-none shadow-2xl text-white">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="w-5 h-5 text-brand" />
+          Ticket Processing
+        </CardTitle>
+        <CardDescription>Live settlement status from ticket data</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6 pt-4">
+        <div className="space-y-2">
+          <div className="flex justify-between text-[10px] font-bold uppercase text-zinc-500 tracking-wider">
+            <span>Pending Tickets</span>
+            <span className="text-brand">{pending} / {slips}</span>
+          </div>
+          <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden border border-zinc-800">
+            <div className="h-full bg-brand shadow-[0_0_10px_rgba(204,255,0,0.5)]" style={{ width: `${pendingPct}%` }} />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between text-[10px] font-bold uppercase text-zinc-500 tracking-wider">
+            <span>Settled Tickets</span>
+            <span className="text-emerald-500">{settled} / {slips}</span>
+          </div>
+          <div className="h-2 w-full bg-zinc-800/50 rounded-full overflow-hidden border border-zinc-800">
+            <div className="h-full bg-emerald-500" style={{ width: `${settledPct}%` }} />
+          </div>
+        </div>
+
+        <div className="pt-4 grid grid-cols-2 gap-4">
+          <div className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800 hover:border-zinc-700 transition-all group lg:aspect-square flex flex-col justify-center">
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 group-hover:text-brand transition-colors">Total Stake</p>
+            <p className="text-2xl font-display font-bold text-white tracking-tighter italic">{formatMoney(metrics.stakeSum)}</p>
+          </div>
+          <div className="bg-zinc-900/50 rounded-2xl p-5 border border-zinc-800 hover:border-zinc-700 transition-all group lg:aspect-square flex flex-col justify-center">
+            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1 group-hover:text-brand transition-colors">Total Payout</p>
+            <p className="text-2xl font-display font-bold text-white tracking-tighter italic">{formatMoney(metrics.payoutSum)}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const RecentTickets = ({ rows }: { rows: any[] }) => (
   <Card className="bg-[#1A1A1A] border-none shadow-2xl">
@@ -273,10 +339,22 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
     staleTime: 5_000
   });
 
+  const limits = useQuery({
+    queryKey: ["dashboard-limits"],
+    queryFn: async () => {
+      const [me, tree] = await Promise.all([
+        apiRequest<{ limit: { totalLimit: string } }>("/api/limits/me"),
+        apiRequest<{ items: any[] }>("/api/limits/tree"),
+      ]);
+      return { meLimit: Number(me.limit?.totalLimit || 0), rows: tree.items || [] };
+    },
+    staleTime: 10_000,
+    enabled: isNetworkManager,
+  });
+
   const metrics = dashboard.data?.metrics || {};
   const trend = (dashboard.data as any)?.trend?.dailyStake as { label: string; value: number }[] | undefined;
   const chartData = (trend && Array.isArray(trend) ? trend : []).map((d) => ({ name: d.label, value: Number(d.value || 0) }));
-  const formatMoney = (value: unknown) => Number(value || 0).toFixed(2);
 
   if (dashboard.isLoading) {
     return (
@@ -374,7 +452,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {isNetworkManager && <CreditDistribution />}
+        {isNetworkManager && <CreditDistribution meLimit={limits.data?.meLimit || 0} rows={limits.data?.rows || []} />}
 
         <Card className={`${isNetworkManager ? 'lg:col-span-2' : 'lg:col-span-3'} bg-[#1A1A1A] border-none shadow-2xl`}>
           <BettingChart />
@@ -403,7 +481,7 @@ export const DashboardPage = ({ role }: { role: UserRole }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <RecentTickets rows={recent.data?.rows || []} />
-          <SystemStatusMonitor />
+          <LiveTicketStatus metrics={metrics} />
       </div>
     </div>
   )

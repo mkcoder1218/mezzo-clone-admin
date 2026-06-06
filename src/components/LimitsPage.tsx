@@ -22,6 +22,11 @@ type TreeItem = {
   limit: LimitRow;
 };
 
+function money(v: any) {
+  const n = Number(v || 0);
+  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+}
+
 export function LimitsPage({ role }: { role: UserRole }) {
   const [meLimit, setMeLimit] = useState<string>("0");
   const [items, setItems] = useState<TreeItem[]>([]);
@@ -44,6 +49,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
     // Manager can allocate to descendants only (service enforces specifics).
     return items;
   }, [items, isSuperAdmin]);
+  const selectedTarget = eligibleTargets.find((u) => u.id === targetUserId);
 
   async function fetchAll() {
     setLoading(true);
@@ -79,7 +85,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
       } else {
         await apiRequest("/api/limits/allocate", {
           method: "POST",
-          body: JSON.stringify({ childUserId: targetUserId, totalLimit: n })
+          body: JSON.stringify({ childUserId: targetUserId, amount: n })
         });
       }
 
@@ -123,7 +129,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
                 <DialogDescription className="text-zinc-400">
                   {isSuperAdmin
                     ? "Set a total limit for an agent or super agent."
-                    : "Set a total limit for someone in your hierarchy."}
+                    : "Add limit to someone in your hierarchy. This increases their current limit."}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -143,8 +149,18 @@ export function LimitsPage({ role }: { role: UserRole }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Total Limit</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">
+                    {isSuperAdmin ? "Total Limit" : "Add Amount"}
+                  </label>
                   <Input value={amount} onChange={(e) => setAmount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                  {!isSuperAdmin && selectedTarget ? (
+                    <p className="text-xs text-zinc-500 pl-1">
+                      Current: <span className="text-zinc-300">{selectedTarget.limit?.totalLimit || "0"}</span>
+                      {Number.isFinite(Number(amount)) && Number(amount) > 0 ? (
+                        <span> / After: <span className="text-zinc-300">{money(Number(selectedTarget.limit?.totalLimit || 0) + Number(amount))}</span></span>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
@@ -207,7 +223,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
                   <Button
                     onClick={() => {
                       setTargetUserId(u.id);
-                      setAmount(String(u.limit?.totalLimit || "0"));
+                      setAmount(isSuperAdmin ? String(u.limit?.totalLimit || "0") : "");
                       setEditRowId(u.id);
                       setOpen(true);
                     }}

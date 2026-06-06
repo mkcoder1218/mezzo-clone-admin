@@ -74,8 +74,7 @@ export const Sidebar = ({
 
   const opsItems = useMemo(
     () =>
-      currentRole === "SUPER_ADMIN"
-        ? [
+      [
         { name: "Bets", path: "/bets", icon: Receipt, roles: ["SUPER_ADMIN"] },
         { name: "Bet Queue", path: "/bet-queue", icon: Receipt, roles: ["SUPER_ADMIN"] },
         { name: "Redeem", path: "/redeem", icon: CheckCircle2, roles: ["SUPER_ADMIN"] },
@@ -87,9 +86,9 @@ export const Sidebar = ({
         { name: "APIfootball Events", path: "/apifootball-events", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Unmapped Fixtures", path: "/unmapped-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
         { name: "Mapped Fixtures", path: "/mapped-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
-        { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN"] },
-      ].filter((i) => i.roles.includes(currentRole))
-        : [],
+        { name: "Money Made", path: "/money-made", icon: TrendingUp, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT"] },
+        { name: "Reports", path: "/reports", icon: LayoutDashboard, roles: ["SUPER_ADMIN", "SUPER_AGENT", "AGENT"] },
+      ].filter((i) => i.roles.includes(currentRole)),
     [currentRole]
   );
   const opsActive = opsItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
@@ -117,7 +116,7 @@ export const Sidebar = ({
     >
       <div className="p-6 shrink-0">
         <div className="flex items-center gap-2 mb-8">
-          <img src="/brand/king5bet-logo.png" alt="KING5bet" className="h-10 w-auto max-w-[170px] object-contain" />
+          <img src="/brand/king5bet-logo.png" alt="KING5bet" className="h-16 w-auto max-w-[220px] object-contain drop-shadow-[0_0_15px_rgba(163,230,53,0.3)]" />
           <button
             type="button"
             onClick={onClose}
