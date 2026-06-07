@@ -98,6 +98,26 @@ export function useAdminSaveOddsSettings() {
   });
 }
 
+export function useAdminSportsGameOddsStatus() {
+  return useQuery({ queryKey: ["admin-sports-game-odds-status"], queryFn: dataFetchingApi.sportsGameOddsStatus, refetchOnWindowFocus: false });
+}
+
+export function useAdminSportsGameOddsUsage() {
+  return useQuery({ queryKey: ["admin-sports-game-odds-usage"], queryFn: dataFetchingApi.sportsGameOddsUsage, refetchOnWindowFocus: false });
+}
+
+export function useAdminSportsGameOddsSports() {
+  return useQuery({ queryKey: ["admin-sports-game-odds-sports"], queryFn: dataFetchingApi.sportsGameOddsSports, refetchOnWindowFocus: false });
+}
+
+export function useAdminSportsGameOddsLeagues(sportID?: string) {
+  return useQuery({
+    queryKey: ["admin-sports-game-odds-leagues", sportID || ""],
+    queryFn: () => dataFetchingApi.sportsGameOddsLeagues(sportID),
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useAdminRepairResultsFixtureMapping() {
   return useMutation({
     mutationFn: ({ eventId, apply }: { eventId: number; apply?: boolean }) => dataFetchingApi.adminRepairResultsFixtureMapping(eventId, apply !== false),

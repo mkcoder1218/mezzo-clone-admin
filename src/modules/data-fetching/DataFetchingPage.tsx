@@ -15,6 +15,7 @@ import {
   useAdminSetFetcherEnabled,
   useAdminOddsSettings,
   useAdminSaveOddsSettings,
+  useAdminSportsGameOddsStatus,
   useAdminRepairResultsFixtureMapping,
   useOddsFetchNow,
   useOddsLatest,
@@ -30,6 +31,9 @@ import {
   useAdminMezzoResetOddsStatus,
   useAdminMezzoResetOddsStop,
   useAdminMezzoResetOddsForceStop,
+  useAdminSportsGameOddsLeagues,
+  useAdminSportsGameOddsSports,
+  useAdminSportsGameOddsUsage,
   useAdminApiFootballLeaguesDisableAll,
   useAdminApiFootballLeaguesEnableAll,
   useAdminApiFootballLeaguesFetchNow,
@@ -220,6 +224,10 @@ export function DataFetchingPage() {
   const setFetcherEnabled = useAdminSetFetcherEnabled();
   const oddsSettings = useAdminOddsSettings();
   const saveOddsSettings = useAdminSaveOddsSettings();
+  const sportsGameOddsStatus = useAdminSportsGameOddsStatus();
+  const sportsGameOddsUsage = useAdminSportsGameOddsUsage();
+  const sportsGameOddsSports = useAdminSportsGameOddsSports();
+  const sportsGameOddsLeagues = useAdminSportsGameOddsLeagues("SOCCER");
   const repairResultsMapping = useAdminRepairResultsFixtureMapping();
 
   const syncFixtures = useAdminApiFootballSyncFixtures();
@@ -240,6 +248,12 @@ export function DataFetchingPage() {
   const defaults = oddsSettings.data?.data?.defaults || null;
   const current = oddsSettings.data?.data?.value || null;
   const [cfgForm, setCfgForm] = useState({
+    oddsProvider: null as string | null,
+    pissbetSocketUrl: "",
+    sportsGameOddsApiKey: "",
+    sportsGameOddsBaseUrl: "https://api.sportsgameodds.com",
+    sportsGameOddsLeagueIds: ["NBA", "NFL", "MLB", "NHL", "EPL"],
+    sportsGameOddsBookmakerPriority: ["draftkings", "fanduel", "bet365", "caesars", "betmgm"],
     prematchOddsMaxAgeSeconds: 3600,
     detailOddsMaxAgeSeconds: 7200,
     liveOddsMaxAgeSeconds: 15,
@@ -952,6 +966,164 @@ export function DataFetchingPage() {
               <CardDescription>Persisted settings. Workers apply changes on the next cycle.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 border-b border-zinc-800 pb-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">Active odds provider</div>
+                  <Select
+                    value={String((cfgForm as any).oddsProvider || "mezzo")}
+                    onValueChange={(v) => setCfgForm((s: any) => ({ ...s, oddsProvider: v }))}
+                  >
+                    <SelectTrigger className="bg-zinc-900 border-zinc-700">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(oddsSettings.data?.data?.providers || [
+                        { key: "mezzo", label: "Mezzo (HTTP)" },
+                        { key: "apifootball", label: "APIfootball (HTTP)" },
+                        { key: "sports_game_odds", label: "SportsGameOdds (HTTP)" },
+                        { key: "pissbet_socket", label: "Pissbet Socket" },
+                      ]).map((p: any) => (
+                        <SelectItem key={p.key} value={p.key}>
+                          {p.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs text-zinc-500">Current: {oddsSettings.data?.data?.activeProvider || "loading"}</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">Pissbet socket URL</div>
+                  <Input
+                    value={String((cfgForm as any).pissbetSocketUrl || "")}
+                    onChange={(e) => setCfgForm((s: any) => ({ ...s, pissbetSocketUrl: e.target.value }))}
+                    placeholder="wss://..."
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">SportsGameOdds API key</div>
+                  <Input
+                    type="password"
+                    value={String((cfgForm as any).sportsGameOddsApiKey || "")}
+                    onChange={(e) => setCfgForm((s: any) => ({ ...s, sportsGameOddsApiKey: e.target.value }))}
+                    placeholder={sportsGameOddsStatus.data?.apiKeyMasked || "x-api-key"}
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                  <div className="text-xs text-zinc-500">
+                    {sportsGameOddsStatus.data?.apiKeyConfigured ? "Configured" : "Not configured"}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">SportsGameOdds base URL</div>
+                  <Input
+                    value={String((cfgForm as any).sportsGameOddsBaseUrl || "")}
+                    onChange={(e) => setCfgForm((s: any) => ({ ...s, sportsGameOddsBaseUrl: e.target.value }))}
+                    placeholder="https://api.sportsgameodds.com"
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">SportsGameOdds league IDs</div>
+                  <Input
+                    value={((cfgForm as any).sportsGameOddsLeagueIds || []).join(",")}
+                    onChange={(e) =>
+                      setCfgForm((s: any) => ({
+                        ...s,
+                        sportsGameOddsLeagueIds: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
+                      }))
+                    }
+                    placeholder="NBA,NFL,MLB"
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm text-zinc-300">SportsGameOdds bookmakers</div>
+                  <Input
+                    value={((cfgForm as any).sportsGameOddsBookmakerPriority || []).join(",")}
+                    onChange={(e) =>
+                      setCfgForm((s: any) => ({
+                        ...s,
+                        sportsGameOddsBookmakerPriority: e.target.value.split(",").map((x) => x.trim()).filter(Boolean),
+                      }))
+                    }
+                    placeholder="draftkings,fanduel,bet365"
+                    className="bg-zinc-900 border-zinc-700"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Card className="bg-zinc-950 border-zinc-800">
+                  <CardHeader>
+                    <CardTitle className="text-sm">SportsGameOdds Usage</CardTitle>
+                    <CardDescription>Rate limits from /v2/account/usage</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs text-zinc-300">
+                    <div>Tier: {sportsGameOddsUsage.data?.data?.tier || "n/a"}</div>
+                    <div>Active: {sportsGameOddsUsage.data?.data?.isActive === true ? "yes" : sportsGameOddsUsage.data?.data?.isActive === false ? "no" : "n/a"}</div>
+                    {["per-minute", "per-hour", "per-day", "per-month"].map((key) => {
+                      const row = sportsGameOddsUsage.data?.data?.rateLimits?.[key];
+                      return (
+                        <div key={key} className="flex justify-between gap-3 border-t border-zinc-800 pt-2">
+                          <span>{key}</span>
+                          <span className="text-zinc-400">
+                            {String(row?.["current-requests"] ?? row?.["current-entities"] ?? "0")} / {String(row?.["max-requests"] ?? row?.["max-entities"] ?? "n/a")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-950 border-zinc-800">
+                  <CardHeader>
+                    <CardTitle className="text-sm">SportsGameOdds Sports</CardTitle>
+                    <CardDescription>Enabled sport IDs from /v2/sports</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs text-zinc-300">
+                    {(Array.isArray(sportsGameOddsSports.data?.data) ? sportsGameOddsSports.data.data : []).slice(0, 8).map((sport: any) => (
+                      <div key={String(sport?.sportID)} className="flex justify-between gap-3">
+                        <span>{String(sport?.name || sport?.sportID)}</span>
+                        <Badge className={sport?.enabled ? "bg-emerald-600" : "bg-zinc-700"}>{String(sport?.sportID || "")}</Badge>
+                      </div>
+                    ))}
+                    {sportsGameOddsSports.isError ? <div className="text-red-400">Could not load sports.</div> : null}
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-950 border-zinc-800">
+                  <CardHeader>
+                    <CardTitle className="text-sm">SOCCER Leagues</CardTitle>
+                    <CardDescription>Use these league IDs for football</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-xs text-zinc-300">
+                    {(Array.isArray(sportsGameOddsLeagues.data?.data) ? sportsGameOddsLeagues.data.data : []).slice(0, 10).map((league: any) => (
+                      <button
+                        key={String(league?.leagueID)}
+                        type="button"
+                        onClick={() =>
+                          setCfgForm((s: any) => {
+                            const current = Array.isArray(s.sportsGameOddsLeagueIds) ? s.sportsGameOddsLeagueIds : [];
+                            const next = Array.from(new Set([...current, String(league?.leagueID || "").trim()].filter(Boolean)));
+                            return { ...s, sportsGameOddsLeagueIds: next };
+                          })
+                        }
+                        className="w-full flex justify-between gap-3 text-left hover:text-white"
+                      >
+                        <span>{String(league?.name || league?.shortName || league?.leagueID)}</span>
+                        <span className="text-brand">{String(league?.leagueID || "")}</span>
+                      </button>
+                    ))}
+                    {sportsGameOddsLeagues.isError ? <div className="text-red-400">Could not load SOCCER leagues.</div> : null}
+                  </CardContent>
+                </Card>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <div className="text-sm text-zinc-300">Persist detail odds to DB</div>
@@ -1142,10 +1314,14 @@ export function DataFetchingPage() {
               <div className="flex gap-2">
                 <Button
                   onClick={() =>
-                    saveOddsSettings.mutate(cfgForm, {
+                    {
+                      const payload: any = { ...cfgForm };
+                      if (!String(payload.sportsGameOddsApiKey || "").trim()) delete payload.sportsGameOddsApiKey;
+                      saveOddsSettings.mutate(payload, {
                       onSuccess: () => setToast({ kind: "success", message: "Saved odds/cron settings." }),
                       onError: (err: any) => setToast({ kind: "error", message: String(err?.message || "Failed to save settings") }),
-                    })
+                      });
+                    }
                   }
                   disabled={saveOddsSettings.isPending || oddsSettings.isLoading}
                   className="bg-brand text-black hover:bg-brand/80"

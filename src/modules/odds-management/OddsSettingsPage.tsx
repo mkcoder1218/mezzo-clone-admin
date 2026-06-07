@@ -38,6 +38,7 @@ export function OddsSettingsPage() {
   const qc = useQueryClient();
   const { data: status } = useQuery({ queryKey: ["apifootball-status"], queryFn: oddsManagementApi.apiFootballStatus });
   const { data: mezzoStatus } = useQuery({ queryKey: ["mezzo-status"], queryFn: oddsManagementApi.mezzoStatus });
+  const { data: sportsGameOddsStatus } = useQuery({ queryKey: ["sports-game-odds-status"], queryFn: oddsManagementApi.sportsGameOddsStatus });
   const { data, isLoading } = useQuery({ queryKey: ["odds-settings"], queryFn: oddsManagementApi.settingsGet });
 
   const [leagueSearch, setLeagueSearch] = useState("");
@@ -70,6 +71,7 @@ export function OddsSettingsPage() {
   const providers = data?.providers || [
     { key: "mezzo", label: "Mezzo (HTTP)", supportsTopEvents: false },
     { key: "apifootball", label: "APIfootball (HTTP)", supportsTopEvents: false },
+    { key: "sports_game_odds", label: "SportsGameOdds (HTTP)", supportsTopEvents: false },
     { key: "pissbet_socket", label: "Pissbet Socket (Top Events)", supportsTopEvents: true },
   ];
 
@@ -88,13 +90,15 @@ export function OddsSettingsPage() {
 
   const selectedProvider = String(effective.oddsProvider ?? data?.activeProvider ?? "");
   const isSelectedMezzo = selectedProvider === "mezzo";
+  const isSelectedSportsGameOdds = selectedProvider === "sports_game_odds";
+  const providerStatus = isSelectedSportsGameOdds ? sportsGameOddsStatus : status;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white uppercase tracking-tight italic font-display">Odds Management · Settings</h1>
-          <p className="text-zinc-500 mt-1">APIfootball provider settings, league sync, freshness, workers, and pricing.</p>
+          <p className="text-zinc-500 mt-1">Provider settings, league sync, freshness, workers, and pricing.</p>
         </div>
         <Button className="bg-brand text-black font-extrabold" onClick={save} disabled={!Object.keys(draft).length}>
           Save Settings
@@ -150,11 +154,11 @@ export function OddsSettingsPage() {
               </Badge>
             ) : (
               <>
-                <Badge className={status?.apiKeyConfigured ? "bg-emerald-600" : "bg-rose-600"}>
-                  {status?.apiKeyConfigured ? "API key configured" : "API key missing"}
+                <Badge className={providerStatus?.apiKeyConfigured ? "bg-emerald-600" : "bg-rose-600"}>
+                  {providerStatus?.apiKeyConfigured ? "API key configured" : "API key missing"}
                 </Badge>
-                <Badge className={status?.oddsProviderActive ? "bg-brand text-black" : "bg-zinc-700"}>
-                  {status?.oddsProviderActive ? "ODDS_PROVIDER=apifootball" : "ODDS_PROVIDER!=apifootball"}
+                <Badge className={providerStatus?.oddsProviderActive ? "bg-brand text-black" : "bg-zinc-700"}>
+                  {providerStatus?.oddsProviderActive ? `Provider=${selectedProvider}` : `Provider!=${selectedProvider}`}
                 </Badge>
               </>
             )}
@@ -165,17 +169,19 @@ export function OddsSettingsPage() {
           <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
             <div className="text-zinc-400">Base URL</div>
             <div className="text-white mt-1 break-all">
-              {isSelectedMezzo ? "https://api.mezzo.bet/api/v2/multi" : status?.baseUrl}
+              {isSelectedMezzo ? "https://api.mezzo.bet/api/v2/multi" : providerStatus?.baseUrl}
             </div>
           </div>
           <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4">
             <div className="text-zinc-400">Requests remaining</div>
-            <div className="text-white mt-1">{isSelectedMezzo ? "n/a" : (status?.rate ? `${status.rate.remaining}/${status.rate.limit}` : "n/a")}</div>
+            <div className="text-white mt-1">{isSelectedMezzo || isSelectedSportsGameOdds ? "n/a" : (status?.rate ? `${status.rate.remaining}/${status.rate.limit}` : "n/a")}</div>
           </div>
           <div className="bg-zinc-950/40 border border-zinc-800/60 rounded-xl p-4 flex items-center justify-between">
             <div>
               <div className="text-zinc-400">Connection</div>
-              <div className="text-white mt-1">{isSelectedMezzo ? "Fetch Mezzo snapshots" : "Test provider now"}</div>
+              <div className="text-white mt-1">
+                {isSelectedMezzo ? "Fetch Mezzo snapshots" : isSelectedSportsGameOdds ? "SportsGameOdds status" : "Test provider now"}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {selectedProvider === "mezzo" ? (
@@ -207,12 +213,14 @@ export function OddsSettingsPage() {
                     } finally {
                       await qc.invalidateQueries({ queryKey: ["mezzo-status"] });
                     }
+                  } else if (isSelectedSportsGameOdds) {
+                    await qc.invalidateQueries({ queryKey: ["sports-game-odds-status"] });
                   } else {
                     await oddsManagementApi.apiFootballTest();
                   }
                 }}
               >
-                {selectedProvider === "mezzo" ? "Fetch Now" : "Test"}
+                {selectedProvider === "mezzo" ? "Fetch Now" : isSelectedSportsGameOdds ? "Refresh" : "Test"}
               </Button>
             </div>
           </div>

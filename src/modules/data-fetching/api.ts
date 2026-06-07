@@ -25,9 +25,26 @@ export const dataFetchingApi = {
     apiRequest<{ status: string; rows: any[] }>(`/api/admin/workers/betslips?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(String(limit))}`),
   adminRetryBetslip: (slipId: string) => apiRequest(`/api/admin/workers/betslips/${encodeURIComponent(slipId)}/retry`, { method: "POST" }),
 
-  adminOddsSettingsGet: () => apiRequest<AdminOddsSettingsResponse>("/api/admin/settings/odds"),
+  adminOddsSettingsGet: async () => {
+    const raw = await apiRequest<any>("/api/admin/odds/settings");
+    return {
+      success: true,
+      data: {
+        value: raw.settings,
+        defaults: raw.defaults,
+        providers: raw.providers,
+        activeProvider: raw.activeProvider,
+      },
+    } as AdminOddsSettingsResponse & { data: any };
+  },
   adminOddsSettingsPatch: (body: OddsConfigValue) =>
-    apiRequest("/api/admin/settings/odds", { method: "PATCH", body: JSON.stringify(body) }),
+    apiRequest("/api/admin/odds/settings", { method: "PUT", body: JSON.stringify(body) }),
+
+  sportsGameOddsStatus: () => apiRequest<any>("/api/admin/odds/sports-game-odds/status"),
+  sportsGameOddsUsage: () => apiRequest<any>("/api/admin/odds/sports-game-odds/usage"),
+  sportsGameOddsSports: () => apiRequest<any>("/api/admin/odds/sports-game-odds/sports"),
+  sportsGameOddsLeagues: (sportID?: string) =>
+    apiRequest<any>(`/api/admin/odds/sports-game-odds/leagues${sportID ? `?sportID=${encodeURIComponent(sportID)}` : ""}`),
 
   adminRepairResultsFixtureMapping: (eventId: number, apply = true) =>
     apiRequest("/api/admin/results/repair-fixture-mapping", { method: "POST", body: JSON.stringify({ eventId, apply }) }),

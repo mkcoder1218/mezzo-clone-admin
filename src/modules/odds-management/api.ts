@@ -3,6 +3,10 @@ import { apiRequest } from "../../lib/apiClient";
 export type OddsSettings = {
   oddsProvider?: string | null;
   pissbetSocketUrl?: string | null;
+  sportsGameOddsApiKey?: string | null;
+  sportsGameOddsBaseUrl?: string | null;
+  sportsGameOddsLeagueIds?: string[];
+  sportsGameOddsBookmakerPriority?: string[];
   bookmakerPriority: string[];
   prematchOddsMaxAgeSeconds: number;
   detailOddsMaxAgeSeconds: number;
@@ -46,6 +50,16 @@ export type MezzoStatus = {
   provider: "mezzo";
   oddsProviderActive: boolean;
   latest: { catalogFetchedAt: string | null; topEventsFetchedAt: string | null };
+};
+
+export type SportsGameOddsStatus = {
+  provider: "sports_game_odds";
+  baseUrl: string;
+  apiKeyConfigured: boolean;
+  apiKeyMasked?: string | null;
+  oddsProviderActive: boolean;
+  leagueIds: string[];
+  bookmakerPriority: string[];
 };
 
 export type ApiFootballLeagueRow = {
@@ -98,6 +112,8 @@ export const oddsManagementApi = {
   mezzoStatus: () => apiRequest<MezzoStatus>("/api/admin/odds/mezzo/status"),
   mezzoFetchNow: (sportId: number) =>
     apiRequest("/api/admin/odds/mezzo/fetch-now", { method: "POST", body: JSON.stringify({ sportId }) }),
+
+  sportsGameOddsStatus: () => apiRequest<SportsGameOddsStatus>("/api/admin/odds/sports-game-odds/status"),
 
   leaguesFetchNow: () => apiRequest("/api/admin/odds/apifootball/leagues/fetch-now", { method: "POST" }),
   leaguesList: (q: { 

@@ -20,6 +20,12 @@ export type AdminFetchersStatusResponse = {
 };
 
 export type OddsConfigValue = {
+  oddsProvider?: string | null;
+  pissbetSocketUrl?: string | null;
+  sportsGameOddsApiKey?: string | null;
+  sportsGameOddsBaseUrl?: string | null;
+  sportsGameOddsLeagueIds?: string[];
+  sportsGameOddsBookmakerPriority?: string[];
   prematchOddsMaxAgeSeconds: number;
   detailOddsMaxAgeSeconds: number;
   liveOddsMaxAgeSeconds: number;
