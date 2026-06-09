@@ -69,6 +69,100 @@ function clampToMaxRange(from: string, to: string, maxDaysInclusive: number) {
   return { from, to };
 }
 
+const SPORTS_GAME_ODDS_BOOKMAKERS = [
+  { name: "1xBet", id: "1xbet", type: "sportsbook" },
+  { name: "888 Sport", id: "888sport", type: "sportsbook" },
+  { name: "Bally Bet", id: "ballybet", type: "sportsbook" },
+  { name: "Barstool", id: "barstool", type: "sportsbook" },
+  { name: "Bet Victor", id: "betvictor", type: "sportsbook" },
+  { name: "Bet365", id: "bet365", type: "sportsbook" },
+  { name: "BetAnySports", id: "betanysports", type: "sportsbook" },
+  { name: "BetClic", id: "betclic", type: "sportsbook" },
+  { name: "Betfair Exchange", id: "betfairexchange", type: "exchange" },
+  { name: "Betfair Sportsbook", id: "betfairsportsbook", type: "sportsbook" },
+  { name: "Betfred", id: "betfred", type: "sportsbook" },
+  { name: "BetMGM", id: "betmgm", type: "sportsbook" },
+  { name: "BetOnline", id: "betonline", type: "sportsbook" },
+  { name: "BetPARX", id: "betparx", type: "sportsbook" },
+  { name: "Betr Sportsbook", id: "betrsportsbook", type: "sportsbook" },
+  { name: "BetRivers", id: "betrivers", type: "sportsbook" },
+  { name: "Betsafe", id: "betsafe", type: "sportsbook" },
+  { name: "Betsson", id: "betsson", type: "sportsbook" },
+  { name: "BetUS", id: "betus", type: "sportsbook" },
+  { name: "Betway", id: "betway", type: "sportsbook" },
+  { name: "BlueBet", id: "bluebet", type: "sportsbook" },
+  { name: "Bodog", id: "bodog", type: "sportsbook" },
+  { name: "Bookmaker.eu", id: "bookmakereu", type: "sportsbook" },
+  { name: "BoomBet", id: "boombet", type: "sportsbook" },
+  { name: "Bovada", id: "bovada", type: "sportsbook" },
+  { name: "BoyleSports", id: "boylesports", type: "sportsbook" },
+  { name: "Caesars", id: "caesars", type: "sportsbook" },
+  { name: "Casumo", id: "casumo", type: "sportsbook" },
+  { name: "Circa", id: "circa", type: "sportsbook" },
+  { name: "Coolbet", id: "coolbet", type: "sportsbook" },
+  { name: "Coral", id: "coral", type: "sportsbook" },
+  { name: "Draft Kings", id: "draftkings", type: "sportsbook" },
+  { name: "ESPN BET", id: "espnbet", type: "sportsbook" },
+  { name: "Everygame", id: "everygame", type: "sportsbook" },
+  { name: "Fanatics", id: "fanatics", type: "sportsbook" },
+  { name: "FanDuel", id: "fanduel", type: "sportsbook" },
+  { name: "Fliff", id: "fliff", type: "sportsbook" },
+  { name: "FourWinds", id: "fourwinds", type: "sportsbook" },
+  { name: "FOX Bet", id: "foxbet", type: "sportsbook" },
+  { name: "Grosvenor", id: "grosvenor", type: "sportsbook" },
+  { name: "GTbets", id: "gtbets", type: "sportsbook" },
+  { name: "Hard Rock Bet", id: "hardrockbet", type: "sportsbook" },
+  { name: "HotStreak", id: "hotstreak", type: "dfs" },
+  { name: "Kalshi", id: "kalshi", type: "exchange" },
+  { name: "Ladbrokes", id: "ladbrokes", type: "sportsbook" },
+  { name: "LeoVegas", id: "leovegas", type: "sportsbook" },
+  { name: "LiveScore Bet", id: "livescorebet", type: "sportsbook" },
+  { name: "LowVig", id: "lowvig", type: "sportsbook" },
+  { name: "Marathon Bet", id: "marathonbet", type: "sportsbook" },
+  { name: "Matchbook", id: "matchbook", type: "exchange" },
+  { name: "Mr Green", id: "mrgreen", type: "sportsbook" },
+  { name: "MyBookie", id: "mybookie", type: "sportsbook" },
+  { name: "Neds", id: "neds", type: "sportsbook" },
+  { name: "NordicBet", id: "nordicbet", type: "sportsbook" },
+  { name: "NorthStar Bets", id: "northstarbets", type: "sportsbook" },
+  { name: "Novig", id: "novig", type: "exchange" },
+  { name: "Paddy Power", id: "paddypower", type: "sportsbook" },
+  { name: "ParlayPlay", id: "parlayplay", type: "dfs" },
+  { name: "Pinnacle", id: "pinnacle", type: "sportsbook" },
+  { name: "PlayUp", id: "playup", type: "sportsbook" },
+  { name: "PointsBet", id: "pointsbet", type: "sportsbook" },
+  { name: "Polymarket", id: "polymarket", type: "exchange" },
+  { name: "Prime Sports", id: "primesports", type: "sportsbook" },
+  { name: "PrizePicks", id: "prizepicks", type: "dfs" },
+  { name: "Prophet Exchange", id: "prophetexchange", type: "sportsbook" },
+  { name: "SI Sportsbook", id: "si", type: "sportsbook" },
+  { name: "Sky Bet", id: "skybet", type: "sportsbook" },
+  { name: "Sleeper", id: "sleeper", type: "dfs" },
+  { name: "SportsBet", id: "sportsbet", type: "sportsbook" },
+  { name: "SportsBetting.ag", id: "sportsbetting_ag", type: "sportsbook" },
+  { name: "Sporttrade", id: "sporttrade", type: "exchange" },
+  { name: "Stake", id: "stake", type: "sportsbook" },
+  { name: "SugarHouse", id: "sugarhouse", type: "sportsbook" },
+  { name: "Superbook", id: "superbook", type: "sportsbook" },
+  { name: "Suprabets", id: "suprabets", type: "sportsbook" },
+  { name: "TAB", id: "tab", type: "sportsbook" },
+  { name: "TABtouch", id: "tabtouch", type: "sportsbook" },
+  { name: "theScore Bet", id: "thescorebet", type: "sportsbook" },
+  { name: "Tipico", id: "tipico", type: "sportsbook" },
+  { name: "TopSport", id: "topsport", type: "sportsbook" },
+  { name: "Underdog Fantasy", id: "underdog", type: "dfs" },
+  { name: "Unibet", id: "unibet", type: "sportsbook" },
+  { name: "Virgin Bet", id: "virginbet", type: "sportsbook" },
+  { name: "William Hill", id: "williamhill", type: "sportsbook" },
+  { name: "Wind Creek (Betfred PA)", id: "windcreek", type: "sportsbook" },
+  { name: "WynnBet", id: "wynnbet", type: "sportsbook" },
+  { name: "Unknown", id: "unknown", type: "unknown" },
+];
+
+const SPORTS_GAME_ODDS_SPORTSBOOK_IDS = SPORTS_GAME_ODDS_BOOKMAKERS
+  .filter((b) => b.type === "sportsbook")
+  .map((b) => b.id);
+
 function parseGames(snapshot: any): ParsedGame[] {
   const responseBody = snapshot?.responseBody;
   if (!responseBody) return [];
@@ -1060,6 +1154,50 @@ export function DataFetchingPage() {
                     placeholder="draftkings,fanduel,bet365"
                     className="bg-zinc-900 border-zinc-700"
                   />
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsBookmakerPriority: SPORTS_GAME_ODDS_SPORTSBOOK_IDS }))}
+                    >
+                      Use all sportsbooks ({SPORTS_GAME_ODDS_SPORTSBOOK_IDS.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsBookmakerPriority: SPORTS_GAME_ODDS_BOOKMAKERS.map((b) => b.id) }))}
+                    >
+                      Use all bookmaker IDs ({SPORTS_GAME_ODDS_BOOKMAKERS.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsBookmakerPriority: [] }))}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="max-h-32 overflow-auto rounded border border-zinc-800 bg-zinc-950 p-2 text-[11px] text-zinc-400">
+                    {SPORTS_GAME_ODDS_BOOKMAKERS.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() =>
+                          setCfgForm((s: any) => {
+                            const current = Array.isArray(s.sportsGameOddsBookmakerPriority) ? s.sportsGameOddsBookmakerPriority : [];
+                            return { ...s, sportsGameOddsBookmakerPriority: Array.from(new Set([...current, b.id])) };
+                          })
+                        }
+                        className="mr-2 mb-1 rounded border border-zinc-800 px-2 py-0.5 hover:border-brand hover:text-white"
+                        title={b.name}
+                      >
+                        {b.id}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1167,21 +1305,43 @@ export function DataFetchingPage() {
                       />
                     </div>
                     <div className="flex items-end">
-                      <Button
-                        type="button"
-                        disabled={sportsGameOddsRawEvents.isPending}
-                        onClick={() =>
-                          sportsGameOddsRawEvents.mutate({
-                            leagueID: sgoRawLeagueId.trim() || undefined,
-                            eventID: sgoRawEventId.trim() || undefined,
-                            limit: Number(sgoRawLimit || 3),
-                            oddsAvailable: true,
-                            bookmakers: sgoRawBookmakers.trim() || undefined,
-                          })
-                        }
-                      >
-                        {sportsGameOddsRawEvents.isPending ? "Loading..." : "Fetch Raw"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          disabled={sportsGameOddsRawEvents.isPending}
+                          onClick={() =>
+                            sportsGameOddsRawEvents.mutate({
+                              leagueID: sgoRawLeagueId.trim() || undefined,
+                              eventID: sgoRawEventId.trim() || undefined,
+                              limit: Number(sgoRawLimit || 3),
+                              oddsAvailable: true,
+                              bookmakers: sgoRawBookmakers.trim() || undefined,
+                            })
+                          }
+                        >
+                          {sportsGameOddsRawEvents.isPending ? "Loading..." : "Fetch Raw"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={!sportsGameOddsRawEvents.data}
+                          onClick={() => {
+                            const payload = sportsGameOddsRawEvents.data;
+                            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+                            a.href = url;
+                            a.download = `sportsgameodds-raw-${stamp}.json`;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
+                          Export JSON
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -1194,7 +1354,7 @@ export function DataFetchingPage() {
                       className="bg-zinc-900 border-zinc-700"
                     />
                     <div className="flex flex-wrap gap-2">
-                      {["all", "book", "fair", ...(((cfgForm as any).sportsGameOddsBookmakerPriority || []) as string[])].filter(Boolean).slice(0, 12).map((bookmaker) => (
+                      {Array.from(new Set(["all", "book", "fair", ...(((cfgForm as any).sportsGameOddsBookmakerPriority || []) as string[]), ...SPORTS_GAME_ODDS_SPORTSBOOK_IDS].filter(Boolean))).slice(0, 30).map((bookmaker) => (
                         <button
                           key={String(bookmaker)}
                           type="button"
