@@ -45,6 +45,17 @@ export const dataFetchingApi = {
   sportsGameOddsSports: () => apiRequest<any>("/api/admin/odds/sports-game-odds/sports"),
   sportsGameOddsLeagues: (sportID?: string) =>
     apiRequest<any>(`/api/admin/odds/sports-game-odds/leagues${sportID ? `?sportID=${encodeURIComponent(sportID)}` : ""}`),
+  sportsGameOddsRawEvents: (params: { leagueID?: string; eventID?: string; sportID?: string; limit?: number; oddsAvailable?: boolean; bookmakers?: string } = {}) => {
+    const qp = new URLSearchParams();
+    if (params.leagueID) qp.set("leagueID", params.leagueID);
+    if (params.eventID) qp.set("eventID", params.eventID);
+    if (params.sportID) qp.set("sportID", params.sportID);
+    if (params.limit) qp.set("limit", String(params.limit));
+    if (params.oddsAvailable !== undefined) qp.set("oddsAvailable", String(params.oddsAvailable));
+    if (params.bookmakers) qp.set("bookmakers", params.bookmakers);
+    const qs = qp.toString();
+    return apiRequest<any>(`/api/admin/odds/sports-game-odds/raw-events${qs ? `?${qs}` : ""}`);
+  },
 
   adminRepairResultsFixtureMapping: (eventId: number, apply = true) =>
     apiRequest("/api/admin/results/repair-fixture-mapping", { method: "POST", body: JSON.stringify({ eventId, apply }) }),

@@ -118,6 +118,13 @@ export function useAdminSportsGameOddsLeagues(sportID?: string) {
   });
 }
 
+export function useAdminSportsGameOddsRawEvents() {
+  return useMutation({
+    mutationFn: (params: { leagueID?: string; eventID?: string; sportID?: string; limit?: number; oddsAvailable?: boolean; bookmakers?: string }) =>
+      dataFetchingApi.sportsGameOddsRawEvents(params),
+  });
+}
+
 export function useAdminRepairResultsFixtureMapping() {
   return useMutation({
     mutationFn: ({ eventId, apply }: { eventId: number; apply?: boolean }) => dataFetchingApi.adminRepairResultsFixtureMapping(eventId, apply !== false),

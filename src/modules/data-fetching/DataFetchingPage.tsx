@@ -32,6 +32,7 @@ import {
   useAdminMezzoResetOddsStop,
   useAdminMezzoResetOddsForceStop,
   useAdminSportsGameOddsLeagues,
+  useAdminSportsGameOddsRawEvents,
   useAdminSportsGameOddsSports,
   useAdminSportsGameOddsUsage,
   useAdminApiFootballLeaguesDisableAll,
@@ -228,6 +229,11 @@ export function DataFetchingPage() {
   const sportsGameOddsUsage = useAdminSportsGameOddsUsage();
   const sportsGameOddsSports = useAdminSportsGameOddsSports();
   const sportsGameOddsLeagues = useAdminSportsGameOddsLeagues("SOCCER");
+  const sportsGameOddsRawEvents = useAdminSportsGameOddsRawEvents();
+  const [sgoRawLeagueId, setSgoRawLeagueId] = useState("INTERNATIONAL_SOCCER");
+  const [sgoRawEventId, setSgoRawEventId] = useState("");
+  const [sgoRawLimit, setSgoRawLimit] = useState("3");
+  const [sgoRawBookmakers, setSgoRawBookmakers] = useState("book,fair,draftkings,fanduel,bet365");
   const repairResultsMapping = useAdminRepairResultsFixtureMapping();
 
   const syncFixtures = useAdminApiFootballSyncFixtures();
@@ -1123,6 +1129,132 @@ export function DataFetchingPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              <Card className="bg-zinc-950 border-zinc-800">
+                <CardHeader>
+                  <CardTitle className="text-sm">SportsGameOdds Raw Events</CardTitle>
+                  <CardDescription>Direct provider JSON from /v2/events. Use this to inspect missing markets before our mapper touches them.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3">
+                    <div className="space-y-1">
+                      <div className="text-xs text-zinc-400">League ID</div>
+                      <Input
+                        value={sgoRawLeagueId}
+                        onChange={(e) => setSgoRawLeagueId(e.target.value)}
+                        placeholder="INTERNATIONAL_SOCCER"
+                        className="bg-zinc-900 border-zinc-700"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-zinc-400">Event ID</div>
+                      <Input
+                        value={sgoRawEventId}
+                        onChange={(e) => setSgoRawEventId(e.target.value)}
+                        placeholder="Optional exact eventID"
+                        className="bg-zinc-900 border-zinc-700"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-zinc-400">Limit</div>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={25}
+                        value={sgoRawLimit}
+                        onChange={(e) => setSgoRawLimit(e.target.value)}
+                        className="bg-zinc-900 border-zinc-700"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        disabled={sportsGameOddsRawEvents.isPending}
+                        onClick={() =>
+                          sportsGameOddsRawEvents.mutate({
+                            leagueID: sgoRawLeagueId.trim() || undefined,
+                            eventID: sgoRawEventId.trim() || undefined,
+                            limit: Number(sgoRawLimit || 3),
+                            oddsAvailable: true,
+                            bookmakers: sgoRawBookmakers.trim() || undefined,
+                          })
+                        }
+                      >
+                        {sportsGameOddsRawEvents.isPending ? "Loading..." : "Fetch Raw"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-xs text-zinc-400">Bookmakers to inspect</div>
+                    <Input
+                      value={sgoRawBookmakers}
+                      onChange={(e) => setSgoRawBookmakers(e.target.value)}
+                      placeholder="book,fair,draftkings,fanduel,bet365"
+                      className="bg-zinc-900 border-zinc-700"
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {["book", "fair", ...(((cfgForm as any).sportsGameOddsBookmakerPriority || []) as string[])].filter(Boolean).slice(0, 12).map((bookmaker) => (
+                        <button
+                          key={String(bookmaker)}
+                          type="button"
+                          onClick={() => setSgoRawBookmakers(String(bookmaker))}
+                          className="rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1 text-[11px] text-zinc-300 hover:border-brand hover:text-white"
+                        >
+                          {String(bookmaker)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="text-[11px] text-zinc-500">
+                      Use `book` and `fair` for SportsGameOdds fallback prices. Named bookmakers come from each odd's `byBookmaker` object.
+                    </div>
+                  </div>
+
+                  {sportsGameOddsRawEvents.data?.summary?.length ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                      {sportsGameOddsRawEvents.data.summary.map((row: any) => (
+                        <div key={String(row.eventID)} className="rounded border border-zinc-800 bg-zinc-900/60 p-3 text-xs text-zinc-300">
+                          <div className="flex justify-between gap-3">
+                            <span className="font-bold text-white">{row.teams?.home || "Home"} v {row.teams?.away || "Away"}</span>
+                            <Badge className="bg-zinc-700">{row.oddsCount} odds</Badge>
+                          </div>
+                          <div className="mt-1 text-zinc-500">{row.eventID} · {row.leagueID} · {row.startsAt || "no start"}</div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {(row.betTypes || []).map((x: string) => <Badge key={x} className="bg-brand text-black">{x}</Badge>)}
+                          </div>
+                          <div className="mt-2 text-zinc-400">
+                            Bookmakers: {(row.availableBookmakers || []).slice(0, 12).join(", ") || "none"}
+                          </div>
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            {(row.bookmakerOdds || []).map((b: any) => (
+                              <div key={String(b.bookmaker)} className="rounded border border-zinc-800 bg-black/40 px-2 py-1">
+                                <div className="flex justify-between gap-2">
+                                  <span className="text-zinc-200">{String(b.bookmaker)}</span>
+                                  <span className={Number(b.oddsCount || 0) > 0 ? "text-emerald-400" : "text-zinc-600"}>{Number(b.oddsCount || 0)} odds</span>
+                                </div>
+                                <div className="mt-1 text-[10px] text-zinc-500 break-all">
+                                  {(b.sample || []).slice(0, 3).map((s: any) => `${s.oddID} ${s.odds}`).join(" · ")}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-2 text-zinc-500 break-all">{(row.oddIDs || []).slice(0, 8).join(", ")}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {sportsGameOddsRawEvents.isError ? (
+                    <div className="text-xs text-red-400">Could not fetch raw SportsGameOdds response.</div>
+                  ) : null}
+
+                  {sportsGameOddsRawEvents.data ? (
+                    <pre className="max-h-[520px] overflow-auto rounded border border-zinc-800 bg-black p-3 text-[11px] leading-relaxed text-zinc-300">
+                      {JSON.stringify(sportsGameOddsRawEvents.data, null, 2)}
+                    </pre>
+                  ) : null}
+                </CardContent>
+              </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
