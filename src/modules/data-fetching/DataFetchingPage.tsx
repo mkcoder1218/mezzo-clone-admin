@@ -233,7 +233,7 @@ export function DataFetchingPage() {
   const [sgoRawLeagueId, setSgoRawLeagueId] = useState("INTERNATIONAL_SOCCER");
   const [sgoRawEventId, setSgoRawEventId] = useState("");
   const [sgoRawLimit, setSgoRawLimit] = useState("3");
-  const [sgoRawBookmakers, setSgoRawBookmakers] = useState("book,fair,draftkings,fanduel,bet365");
+  const [sgoRawBookmakers, setSgoRawBookmakers] = useState("all");
   const repairResultsMapping = useAdminRepairResultsFixtureMapping();
 
   const syncFixtures = useAdminApiFootballSyncFixtures();
@@ -1194,7 +1194,7 @@ export function DataFetchingPage() {
                       className="bg-zinc-900 border-zinc-700"
                     />
                     <div className="flex flex-wrap gap-2">
-                      {["book", "fair", ...(((cfgForm as any).sportsGameOddsBookmakerPriority || []) as string[])].filter(Boolean).slice(0, 12).map((bookmaker) => (
+                      {["all", "book", "fair", ...(((cfgForm as any).sportsGameOddsBookmakerPriority || []) as string[])].filter(Boolean).slice(0, 12).map((bookmaker) => (
                         <button
                           key={String(bookmaker)}
                           type="button"
@@ -1206,7 +1206,7 @@ export function DataFetchingPage() {
                       ))}
                     </div>
                     <div className="text-[11px] text-zinc-500">
-                      Use `book` and `fair` for SportsGameOdds fallback prices. Named bookmakers come from each odd's `byBookmaker` object.
+                      Use `all` to inspect every sportsbook returned by your plan. `book` and `fair` are SportsGameOdds fallback prices; named bookmakers come from each odd's `byBookmaker` object.
                     </div>
                   </div>
 
