@@ -125,6 +125,18 @@ export function useAdminSportsGameOddsRawEvents() {
   });
 }
 
+export function useAdminSportsGameOddsSync() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { leagueIds?: string[]; sportIds?: string[]; all?: boolean; limitPerLeague?: number }) =>
+      dataFetchingApi.sportsGameOddsSync(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-sports-game-odds-status"] });
+      qc.invalidateQueries({ queryKey: ["admin-sports-game-odds-usage"] });
+    },
+  });
+}
+
 export function useAdminRepairResultsFixtureMapping() {
   return useMutation({
     mutationFn: ({ eventId, apply }: { eventId: number; apply?: boolean }) => dataFetchingApi.adminRepairResultsFixtureMapping(eventId, apply !== false),

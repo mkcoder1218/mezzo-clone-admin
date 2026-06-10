@@ -34,6 +34,7 @@ import {
   useAdminSportsGameOddsLeagues,
   useAdminSportsGameOddsRawEvents,
   useAdminSportsGameOddsSports,
+  useAdminSportsGameOddsSync,
   useAdminSportsGameOddsUsage,
   useAdminApiFootballLeaguesDisableAll,
   useAdminApiFootballLeaguesEnableAll,
@@ -344,6 +345,7 @@ export function DataFetchingPage() {
   const sportsGameOddsSports = useAdminSportsGameOddsSports();
   const sportsGameOddsLeagues = useAdminSportsGameOddsLeagues("SOCCER");
   const sportsGameOddsRawEvents = useAdminSportsGameOddsRawEvents();
+  const sportsGameOddsSync = useAdminSportsGameOddsSync();
   const [sgoRawLeagueId, setSgoRawLeagueId] = useState("INTERNATIONAL_SOCCER");
   const [sgoRawEventId, setSgoRawEventId] = useState("");
   const [sgoRawLimit, setSgoRawLimit] = useState("3");
@@ -1203,6 +1205,42 @@ export function DataFetchingPage() {
                       </button>
                     ))}
                   </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={sportsGameOddsSync.isPending}
+                      onClick={() =>
+                        sportsGameOddsSync.mutate({
+                          leagueIds: ((cfgForm as any).sportsGameOddsLeagueIds || []).map((x: any) => String(x).trim()).filter(Boolean),
+                          limitPerLeague: 300,
+                        })
+                      }
+                    >
+                      {sportsGameOddsSync.isPending ? "Syncing..." : "Sync selected leagues"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={sportsGameOddsSync.isPending}
+                      onClick={() => sportsGameOddsSync.mutate({ all: true, limitPerLeague: 300 })}
+                    >
+                      Sync all configured
+                    </Button>
+                  </div>
+                  {sportsGameOddsSync.data?.totals ? (
+                    <div className="rounded border border-zinc-800 bg-zinc-950 p-2 text-xs text-zinc-400">
+                      Saved {sportsGameOddsSync.data.totals.fixturesUpserted || 0} games,
+                      {" "}{sportsGameOddsSync.data.totals.marketsUpserted || 0} markets,
+                      {" "}{sportsGameOddsSync.data.totals.outcomesUpserted || 0} odds.
+                      {sportsGameOddsSync.data.totals.failed ? ` Failed: ${sportsGameOddsSync.data.totals.failed}.` : ""}
+                    </div>
+                  ) : null}
+                  {sportsGameOddsSync.isError ? (
+                    <div className="text-xs text-red-400">SportsGameOdds sync failed. Check the API key and selected leagues.</div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-1">

@@ -56,6 +56,8 @@ export const dataFetchingApi = {
     const qs = qp.toString();
     return apiRequest<any>(`/api/admin/odds/sports-game-odds/raw-events${qs ? `?${qs}` : ""}`);
   },
+  sportsGameOddsSync: (body: { leagueIds?: string[]; sportIds?: string[]; all?: boolean; limitPerLeague?: number } = {}) =>
+    apiRequest<any>("/api/admin/odds/sports-game-odds/sync", { method: "POST", body: JSON.stringify(body) }),
 
   adminRepairResultsFixtureMapping: (eventId: number, apply = true) =>
     apiRequest("/api/admin/results/repair-fixture-mapping", { method: "POST", body: JSON.stringify({ eventId, apply }) }),
