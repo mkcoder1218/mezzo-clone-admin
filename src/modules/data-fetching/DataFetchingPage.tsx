@@ -69,6 +69,26 @@ function clampToMaxRange(from: string, to: string, maxDaysInclusive: number) {
   return { from, to };
 }
 
+const SPORTS_GAME_ODDS_PLAN_LEAGUES = [
+  { sport: "Basketball", id: "NBA", name: "NBA" },
+  { sport: "Basketball", id: "NCAAB", name: "College Basketball" },
+  { sport: "Basketball", id: "WNBA", name: "WNBA" },
+  { sport: "Football", id: "NFL", name: "NFL" },
+  { sport: "Football", id: "NCAAF", name: "College Football" },
+  { sport: "Baseball", id: "MLB", name: "MLB" },
+  { sport: "Hockey", id: "NHL", name: "NHL" },
+  { sport: "Handball", id: "EHF_EURO", name: "EHF European League" },
+  { sport: "MMA", id: "UFC", name: "UFC" },
+  { sport: "Soccer", id: "BUNDESLIGA", name: "Bundesliga" },
+  { sport: "Soccer", id: "EPL", name: "Premier League" },
+  { sport: "Soccer", id: "FR_LIGUE_1", name: "Ligue 1" },
+  { sport: "Soccer", id: "INTERNATIONAL_SOCCER", name: "International Soccer" },
+  { sport: "Soccer", id: "IT_SERIE_A", name: "Serie A" },
+  { sport: "Soccer", id: "LA_LIGA", name: "La Liga" },
+  { sport: "Soccer", id: "MLS", name: "MLS" },
+  { sport: "Soccer", id: "UEFA_CHAMPIONS_LEAGUE", name: "Champions League" },
+];
+
 const SPORTS_GAME_ODDS_BOOKMAKERS = [
   { name: "1xBet", id: "1xbet", type: "sportsbook" },
   { name: "888 Sport", id: "888sport", type: "sportsbook" },
@@ -352,7 +372,7 @@ export function DataFetchingPage() {
     pissbetSocketUrl: "",
     sportsGameOddsApiKey: "",
     sportsGameOddsBaseUrl: "https://api.sportsgameodds.com",
-    sportsGameOddsLeagueIds: ["NBA", "NFL", "MLB", "NHL", "EPL"],
+    sportsGameOddsLeagueIds: SPORTS_GAME_ODDS_PLAN_LEAGUES.map((l) => l.id),
     sportsGameOddsBookmakerPriority: ["draftkings", "fanduel", "bet365", "caesars", "betmgm"],
     prematchOddsMaxAgeSeconds: 3600,
     detailOddsMaxAgeSeconds: 7200,
@@ -1139,6 +1159,50 @@ export function DataFetchingPage() {
                     placeholder="NBA,NFL,MLB"
                     className="bg-zinc-900 border-zinc-700"
                   />
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsLeagueIds: SPORTS_GAME_ODDS_PLAN_LEAGUES.map((l) => l.id) }))}
+                    >
+                      Use plan leagues ({SPORTS_GAME_ODDS_PLAN_LEAGUES.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsLeagueIds: SPORTS_GAME_ODDS_PLAN_LEAGUES.filter((l) => l.sport === "Soccer").map((l) => l.id) }))}
+                    >
+                      Soccer only
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setCfgForm((s: any) => ({ ...s, sportsGameOddsLeagueIds: [] }))}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="max-h-32 overflow-auto rounded border border-zinc-800 bg-zinc-950 p-2 text-[11px] text-zinc-400">
+                    {SPORTS_GAME_ODDS_PLAN_LEAGUES.map((league) => (
+                      <button
+                        key={league.id}
+                        type="button"
+                        onClick={() =>
+                          setCfgForm((s: any) => {
+                            const current = Array.isArray(s.sportsGameOddsLeagueIds) ? s.sportsGameOddsLeagueIds : [];
+                            return { ...s, sportsGameOddsLeagueIds: Array.from(new Set([...current, league.id])) };
+                          })
+                        }
+                        className="mr-2 mb-1 rounded border border-zinc-800 px-2 py-0.5 hover:border-brand hover:text-white"
+                        title={`${league.sport} - ${league.name}`}
+                      >
+                        {league.id}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-1">
