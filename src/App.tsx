@@ -53,6 +53,8 @@ import { ApiFootballLeaguesPage } from "./modules/odds-management/ApiFootballLea
 import { ApiFootballFixturesPage } from "./modules/odds-management/ApiFootballFixturesPage";
 import { ApiFootballFixtureDetailPage } from "./modules/odds-management/ApiFootballFixtureDetailPage";
 import { MezzoLeagueMappingPage } from "./modules/odds-management/MezzoLeagueMappingPage";
+import { TheStatsApiPage } from "./modules/thestatsapi/TheStatsApiPage";
+import { ProviderMatchingPage } from "./modules/provider-matching/ProviderMatchingPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
 
@@ -295,6 +297,18 @@ export default function App() {
                       path="/odds-management/mezzo-league-mapping"
                       element={
                         currentRole === "SUPER_ADMIN" ? <MezzoLeagueMappingPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/providers/thestatsapi"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <TheStatsApiPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
+                      }
+                    />
+                    <Route
+                      path="/provider-matching"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <ProviderMatchingPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>
                       }
                     />
                     

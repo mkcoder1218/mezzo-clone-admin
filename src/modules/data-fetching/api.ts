@@ -18,9 +18,15 @@ export const dataFetchingApi = {
   adminSetFetcherEnabled: (name: string, enabled: boolean) =>
     apiRequest(`/api/admin/fetchers/${name}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
 
-  adminWorkersStatus: () => apiRequest<{ workers: Array<{ name: string; enabled: boolean }> }>("/api/admin/workers/status"),
+  adminWorkersStatus: () => apiRequest<{ workers: Array<{ name: string; enabled: boolean }>; manualRuns?: Record<string, any> }>("/api/admin/workers/status"),
   adminSetWorkerEnabled: (name: string, enabled: boolean) =>
     apiRequest(`/api/admin/workers/${name}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
+  adminRunMezzoFootballWorker: () =>
+    apiRequest<any>("/api/admin/workers/mezzo-football/run-now", { method: "POST" }),
+  adminRunTheStatsApiMissingOddsWorker: () =>
+    apiRequest<any>("/api/admin/workers/thestatsapi-missing-odds/run-now", { method: "POST" }),
+  adminProviderMatchLogs: () =>
+    apiRequest<any>("/api/admin/provider-matching/logs?limit=100"),
   adminPlacingBetslips: (status: "placing" | "place_failed", limit = 50) =>
     apiRequest<{ status: string; rows: any[] }>(`/api/admin/workers/betslips?status=${encodeURIComponent(status)}&limit=${encodeURIComponent(String(limit))}`),
   adminRetryBetslip: (slipId: string) => apiRequest(`/api/admin/workers/betslips/${encodeURIComponent(slipId)}/retry`, { method: "POST" }),

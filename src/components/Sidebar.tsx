@@ -18,7 +18,8 @@ import {
   TrendingUp,
   ChevronDown,
   LogOut,
-  X
+  X,
+  Zap,
 } from "lucide-react";
 import { UserRole } from "../types";
 import { useMemo, useState } from "react";
@@ -65,6 +66,8 @@ export const Sidebar = ({
         { name: "APIfootball Leagues", path: "/odds-management/apifootball-leagues", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "Mezzo League Mapping", path: "/odds-management/mezzo-league-mapping", icon: ListChecks, roles: ["SUPER_ADMIN"] },
         { name: "APIfootball Fixtures", path: "/odds-management/apifootball-fixtures", icon: Database, roles: ["SUPER_ADMIN"] },
+        { name: "TheStatsAPI", path: "/providers/thestatsapi", icon: Zap, roles: ["SUPER_ADMIN"] },
+        { name: "Provider Matching", path: "/provider-matching", icon: Wrench, roles: ["SUPER_ADMIN"] },
         { name: "Odds Debug", path: "/odds-debug", icon: Bug, roles: ["SUPER_ADMIN"] },
       ].filter((i) => i.roles.includes(currentRole)),
     [currentRole]
