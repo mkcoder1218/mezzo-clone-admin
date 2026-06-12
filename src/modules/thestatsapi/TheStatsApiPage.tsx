@@ -18,7 +18,7 @@ import {
   EyeOff,
   Download,
 } from "lucide-react";
-import { theStatsApiAdminApi, type TheStatsApiStatus, type TheStatsApiConnectionTestResult } from "./api";
+import { theStatsApiAdminApi, type TheStatsApiStatus, type TheStatsApiConnectionTestResult, type TheStatsApiSportConfig } from "./api";
 import { ApiClientError } from "../../lib/apiClient";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -156,6 +156,9 @@ export function TheStatsApiPage() {
   const [status, setStatus] = useState<TheStatsApiStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sportsConfig, setSportsConfig] = useState<TheStatsApiSportConfig[]>([]);
+  const [savingSports, setSavingSports] = useState(false);
+  const [sportsMessage, setSportsMessage] = useState<string | null>(null);
 
   const [testResult, setTestResult] = useState<TheStatsApiConnectionTestResult | null>(null);
   const [testing, setTesting] = useState(false);
@@ -193,6 +196,7 @@ export function TheStatsApiPage() {
     try {
       const data = await theStatsApiAdminApi.getStatus();
       setStatus(data);
+      setSportsConfig(data.sportsConfig || []);
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : String((err as any)?.message || err);
       setError(msg);
@@ -274,6 +278,40 @@ export function TheStatsApiPage() {
     setSyncResult(null);
     try {
       const result = await theStatsApiAdminApi.matchFixturesToOdds({ limit: 1000 });
+      setSyncResult(result);
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : String((err as any)?.message || err);
+      setSyncResult({ success: false, error: msg });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const updateSportConfig = (slug: string, patch: Partial<TheStatsApiSportConfig>) => {
+    setSportsConfig((rows) => rows.map((row) => row.slug === slug ? { ...row, ...patch } : row));
+  };
+
+  const handleSaveSportsConfig = async () => {
+    setSavingSports(true);
+    setSportsMessage(null);
+    try {
+      const result = await theStatsApiAdminApi.saveSportsConfig(sportsConfig);
+      setSportsConfig(result.sports || []);
+      setSportsMessage("Sports config saved.");
+      await loadStatus();
+    } catch (err) {
+      const msg = err instanceof ApiClientError ? err.message : String((err as any)?.message || err);
+      setSportsMessage(msg);
+    } finally {
+      setSavingSports(false);
+    }
+  };
+
+  const handleSyncSport = async (sportSlug: string) => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await theStatsApiAdminApi.syncNow({ limit: 100, sportSlug });
       setSyncResult(result);
     } catch (err) {
       const msg = err instanceof ApiClientError ? err.message : String((err as any)?.message || err);
@@ -670,6 +708,68 @@ export function TheStatsApiPage() {
           </SectionCard>
 
           {/* ── Section 4: Sync Settings ───────────────────────────────────── */}
+          <SectionCard title="Sports Fetch Config" icon={<Activity className="w-4 h-4" />}>
+            <p className="text-xs text-zinc-400 mb-4">
+              Enable the TheStatsAPI sports that should fetch fixtures and odds. The multi-sport worker uses this list.
+            </p>
+            <div className="space-y-2">
+              {sportsConfig.map((sport) => (
+                <div key={sport.slug} className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">{sport.name}</span>
+                      <span className="text-[10px] font-mono text-zinc-500">{sport.slug}</span>
+                      <Badge active={sport.enabled} trueLabel="Sport On" falseLabel="Sport Off" />
+                    </div>
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-4 gap-2">
+                      {([
+                        ["enabled", "Enabled"],
+                        ["fixtureSyncEnabled", "Fixtures"],
+                        ["oddsSyncEnabled", "Odds"],
+                        ["liveOddsSyncEnabled", "Live Odds"],
+                      ] as const).map(([key, label]) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => updateSportConfig(sport.slug, { [key]: !sport[key] } as any)}
+                          className={`rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                            sport[key]
+                              ? "border-lime-400/30 bg-lime-400/10 text-lime-300"
+                              : "border-zinc-800 bg-zinc-900 text-zinc-500"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex lg:flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleSyncSport(sport.slug)}
+                      disabled={syncing || !sport.enabled || !status.apiKeyConfigured}
+                      className="px-3 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold disabled:opacity-40"
+                    >
+                      Sync Sport
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleSaveSportsConfig()}
+                disabled={savingSports}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-lime-400 hover:bg-lime-300 text-black font-bold text-sm disabled:opacity-40"
+              >
+                {savingSports ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Save Sports Config
+              </button>
+              {sportsMessage && <span className="text-xs text-zinc-400">{sportsMessage}</span>}
+            </div>
+          </SectionCard>
+
           <SectionCard title="Sync Settings" icon={<RefreshCw className="w-4 h-4" />}>
             <div className="mb-4">
               {([

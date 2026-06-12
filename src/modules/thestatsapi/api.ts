@@ -17,6 +17,16 @@ export type TheStatsApiSyncFlags = {
   settlementEnabled: boolean;
 };
 
+export type TheStatsApiSportConfig = {
+  slug: string;
+  name: string;
+  enabled: boolean;
+  fixtureSyncEnabled: boolean;
+  oddsSyncEnabled: boolean;
+  liveOddsSyncEnabled: boolean;
+  priority: number;
+};
+
 export type TheStatsApiStatus = {
   provider: string;
   enabled: boolean;
@@ -29,6 +39,7 @@ export type TheStatsApiStatus = {
   retryCount: number;
   rate: TheStatsApiRate;
   syncFlags: TheStatsApiSyncFlags;
+  sportsConfig?: TheStatsApiSportConfig[];
 };
 
 export type TheStatsApiConnectionTestResult = {
@@ -61,6 +72,15 @@ export const theStatsApiAdminApi = {
       body: JSON.stringify({ flag, enabled }),
     }),
 
+  getSportsConfig: (): Promise<{ success: boolean; sports: TheStatsApiSportConfig[] }> =>
+    apiRequest("/api/admin/odds/thestatsapi/sports-config"),
+
+  saveSportsConfig: (sports: TheStatsApiSportConfig[]): Promise<{ success: boolean; sports: TheStatsApiSportConfig[] }> =>
+    apiRequest("/api/admin/odds/thestatsapi/sports-config", {
+      method: "PUT",
+      body: JSON.stringify({ sports }),
+    }),
+
   /** Updates the DB odds provider selection — same endpoint as Odds Management Settings Save */
   activateAsProvider: (): Promise<{ settings: any }> =>
     apiRequest("/api/admin/odds/settings", {
@@ -71,7 +91,7 @@ export const theStatsApiAdminApi = {
   /**
    * Manually trigger fixture + odds ingestion from TheStatsAPI.
    */
-  syncNow: (params?: { from?: string; to?: string; limit?: number; competitionId?: string; oddsOnly?: boolean }): Promise<{
+  syncNow: (params?: { from?: string; to?: string; limit?: number; competitionId?: string; oddsOnly?: boolean; sportSlug?: string; sportSlugs?: string[] }): Promise<{
     success: boolean;
     syncId?: string;
     message?: string;

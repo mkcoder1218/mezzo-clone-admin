@@ -49,6 +49,17 @@ type ProviderFixture = {
   } | null;
 };
 
+type AutoPair = {
+  stats: ProviderFixture;
+  mezzo: ProviderFixture;
+  confidence: number;
+  teamScore: number;
+  leagueScore: number;
+  countryScore: number;
+  timeDiffMinutes: number;
+  reason: string;
+};
+
 function fmtDate(value: string) {
   const d = new Date(value);
   if (!Number.isFinite(d.getTime())) return value;
@@ -79,8 +90,11 @@ export function ProviderMatchingPage() {
   const [selectedMezzoId, setSelectedMezzoId] = useState("");
   const [selectedStatsIds, setSelectedStatsIds] = useState<string[]>([]);
   const [selectedMezzoIds, setSelectedMezzoIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<"manual" | "auto" | "normalizations" | "failed">("manual");
+  const [autoPairs, setAutoPairs] = useState<AutoPair[]>([]);
   const [loading, setLoading] = useState(false);
   const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [autoDetecting, setAutoDetecting] = useState(false);
   const [linking, setLinking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -158,7 +172,7 @@ export function ProviderMatchingPage() {
     try {
       const res: any = await apiRequest("/api/admin/provider-matching/link-fixtures", {
         method: "POST",
-        body: { statsFixtureId: selectedStatsId, mezzoFixtureId: selectedMezzoId },
+        body: JSON.stringify({ statsFixtureId: selectedStatsId, mezzoFixtureId: selectedMezzoId }),
       });
       const detail = res?.result?.detail;
       const copied = detail?.copied;
@@ -181,7 +195,7 @@ export function ProviderMatchingPage() {
       }));
       const res: any = await apiRequest("/api/admin/provider-matching/bulk-link-fixtures", {
         method: "POST",
-        body: { pairs },
+        body: JSON.stringify({ pairs }),
       });
       setMessage(`Bulk linked ${res.matched || 0}/${res.processed || pairCount}. Failed: ${res.failed || 0}.`);
       setSelectedStatsIds([]);
@@ -190,6 +204,62 @@ export function ProviderMatchingPage() {
     } finally {
       setLinking(false);
     }
+  }
+
+  async function bulkLinkPairs(pairs: AutoPair[]) {
+    if (!pairs.length) return;
+    const approved = window.confirm(`Approve bulk connection for ${pairs.length} automatically detected match${pairs.length === 1 ? "" : "es"}?`);
+    if (!approved) return;
+    setLinking(true);
+    setMessage(null);
+    try {
+      const res: any = await apiRequest("/api/admin/provider-matching/bulk-link-fixtures", {
+        method: "POST",
+        body: JSON.stringify({
+          pairs: pairs.map((p) => ({
+            statsFixtureId: p.stats.id,
+            mezzoFixtureId: p.mezzo.id,
+          })),
+        }),
+      });
+      setMessage(`Approved bulk connection complete: ${res.matched || 0}/${res.processed || pairs.length}. Failed: ${res.failed || 0}.`);
+      setAutoPairs([]);
+      await Promise.all([loadFixtures(), load()]);
+    } finally {
+      setLinking(false);
+    }
+  }
+
+  async function detectAutoPairs() {
+    setAutoDetecting(true);
+    setMessage(null);
+    try {
+      const res = await apiRequest<{
+        rows: AutoPair[];
+        count: number;
+        scanned?: {
+          thestatsapi: number;
+          mezzo: number;
+          thestatsapiTotal?: number;
+          mezzoTotal?: number;
+          linkedStats?: number;
+          linkedMezzo?: number;
+        };
+      }>("/api/admin/provider-matching/auto-detect-fixtures?limit=800");
+      const pairs = res.rows || [];
+      setAutoPairs(pairs);
+      setActiveTab("auto");
+      const scanned = res.scanned
+        ? ` Scanned ${res.scanned.thestatsapi}/${res.scanned.thestatsapiTotal ?? res.scanned.thestatsapi} StatsAPI and ${res.scanned.mezzo}/${res.scanned.mezzoTotal ?? res.scanned.mezzo} Mezzo games. Already linked: ${res.scanned.linkedStats ?? 0} StatsAPI, ${res.scanned.linkedMezzo ?? 0} Mezzo.`
+        : "";
+      setMessage(pairs.length ? `Detected ${pairs.length} likely pair${pairs.length === 1 ? "" : "s"} for review.${scanned}` : `No strong automatic pairs found.${scanned}`);
+    } finally {
+      setAutoDetecting(false);
+    }
+  }
+
+  function removeAutoPair(statsFixtureId: string) {
+    setAutoPairs((pairs) => pairs.filter((p) => p.stats.id !== statsFixtureId));
   }
 
   function toggleSelection(id: string, side: "stats" | "mezzo") {
@@ -257,6 +327,24 @@ export function ProviderMatchingPage() {
         {message ? <div className="text-lime-400 text-sm mt-3">{message}</div> : null}
       </section>
 
+      <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-2">
+        {[
+          ["manual", "Manual Link"],
+          ["auto", `Auto Detected${autoPairs.length ? ` (${autoPairs.length})` : ""}`],
+          ["normalizations", "Normalizations"],
+          ["failed", "Failed Links"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            className={`rounded px-4 py-2 text-sm font-semibold ${activeTab === key ? "bg-lime-400 text-black" : "bg-zinc-900 text-zinc-300 border border-zinc-800"}`}
+            onClick={() => setActiveTab(key as any)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "manual" ? (
       <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
         <div className="flex flex-col lg:flex-row lg:items-center gap-3 justify-between mb-4">
           <div>
@@ -266,6 +354,13 @@ export function ProviderMatchingPage() {
           <div className="flex gap-2">
             <button className="border border-zinc-700 text-white rounded px-4 py-2 disabled:opacity-50" disabled={fixturesLoading} onClick={() => void loadFixtures()}>
               {fixturesLoading ? "Loading..." : "Refresh"}
+            </button>
+            <button
+              className="border border-sky-500/60 text-sky-200 rounded px-4 py-2 disabled:opacity-50"
+              disabled={autoDetecting}
+              onClick={() => void detectAutoPairs()}
+            >
+              {autoDetecting ? "Detecting..." : "Auto Detect"}
             </button>
             <button
               className="border border-lime-500/60 text-lime-200 rounded px-4 py-2 disabled:opacity-50"
@@ -338,7 +433,61 @@ export function ProviderMatchingPage() {
           </div>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "auto" ? (
+        <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-white font-semibold">Auto Detected Connections</h2>
+              <p className="text-zinc-500 text-sm mt-1">Review the connected pairs before approving the bulk connection.</p>
+            </div>
+            <div className="flex gap-2">
+              <button className="border border-sky-500/60 text-sky-200 rounded px-4 py-2 disabled:opacity-50" disabled={autoDetecting} onClick={() => void detectAutoPairs()}>
+                {autoDetecting ? "Detecting..." : "Detect Again"}
+              </button>
+              <button
+                className="bg-lime-400 text-black font-semibold rounded px-4 py-2 disabled:opacity-50"
+                disabled={!autoPairs.length || linking}
+                onClick={() => void bulkLinkPairs(autoPairs)}
+              >
+                Approve Bulk Connection {autoPairs.length || ""}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {autoPairs.map((pair, index) => (
+              <div key={`${pair.stats.id}:${pair.mezzo.id}`} className="grid grid-cols-1 xl:grid-cols-[1fr_auto_1fr_auto] gap-3 items-stretch border border-zinc-800 rounded p-3 bg-zinc-950/70">
+                <div>
+                  <div className="text-xs text-zinc-500 mb-1">TheStatsAPI #{index + 1}</div>
+                  <div className="text-white font-semibold">{pair.stats.home} v {pair.stats.away}</div>
+                  <div className="text-xs text-zinc-500 mt-1">{pair.stats.league?.country || ""} - {pair.stats.league?.name || ""}</div>
+                  <div className="text-xs text-zinc-500 mt-1">{fmtDate(pair.stats.startsAt)} | {pair.stats.externalEventId}</div>
+                </div>
+                <div className="flex xl:flex-col justify-center items-center text-center px-3">
+                  <div className="rounded bg-lime-400/10 border border-lime-400/40 px-3 py-2">
+                    <div className="text-lime-300 font-bold">{Math.round(pair.confidence * 100)}%</div>
+                    <div className="text-[10px] text-zinc-500">diff {Math.round(pair.timeDiffMinutes)}m</div>
+                    <div className="text-[10px] text-zinc-400">{pair.reason}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-zinc-500 mb-1">Mezzo #{index + 1}</div>
+                  <div className="text-white font-semibold">{pair.mezzo.home} v {pair.mezzo.away}</div>
+                  <div className="text-xs text-zinc-500 mt-1">{pair.mezzo.league?.country || ""} - {pair.mezzo.league?.name || ""}</div>
+                  <div className="text-xs text-zinc-500 mt-1">{fmtDate(pair.mezzo.startsAt)} | {pair.mezzo.externalEventId}</div>
+                </div>
+                <button className="text-red-300 border border-red-500/30 rounded px-3 py-2" onClick={() => removeAutoPair(pair.stats.id)}>
+                  Remove
+                </button>
+              </div>
+            ))}
+            {!autoPairs.length ? <div className="text-zinc-500 text-sm py-8">No auto-detected pairs yet. Click Detect Again after loading both fixture lists.</div> : null}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "normalizations" ? (
       <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
         <div className="flex flex-col md:flex-row md:items-center gap-3 justify-between mb-4">
           <h2 className="text-white font-semibold">Saved Normalizations</h2>
@@ -386,7 +535,9 @@ export function ProviderMatchingPage() {
           </table>
         </div>
       </section>
+      ) : null}
 
+      {activeTab === "failed" ? (
       <section className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
         <h2 className="text-white font-semibold mb-4">Failed Or Ambiguous Links</h2>
         <div className="space-y-2">
@@ -412,6 +563,7 @@ export function ProviderMatchingPage() {
           {!failed.length ? <div className="text-zinc-500 text-sm">No failed links found.</div> : null}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

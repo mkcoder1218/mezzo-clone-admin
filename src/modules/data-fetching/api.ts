@@ -23,6 +23,8 @@ export const dataFetchingApi = {
     apiRequest(`/api/admin/workers/${name}/enabled`, { method: "PATCH", body: JSON.stringify({ enabled }) }),
   adminRunMezzoFootballWorker: () =>
     apiRequest<any>("/api/admin/workers/mezzo-football/run-now", { method: "POST" }),
+  adminRunTheStatsApiMultiSportWorker: () =>
+    apiRequest<any>("/api/admin/workers/thestatsapi-multisport/run-now", { method: "POST" }),
   adminRunTheStatsApiMissingOddsWorker: () =>
     apiRequest<any>("/api/admin/workers/thestatsapi-missing-odds/run-now", { method: "POST" }),
   adminProviderMatchLogs: () =>

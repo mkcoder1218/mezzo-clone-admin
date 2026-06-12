@@ -9,10 +9,15 @@ import { apiRequest } from "../lib/apiClient";
 type SettlementConfig = {
   autoSettleOnSelectionUpdate: boolean;
   autoVoidUnsupportedMarkets: boolean;
+  voidCancelledMatches: boolean;
 };
 
 export function SettlementConfigPage() {
-  const [draft, setDraft] = useState<SettlementConfig>({ autoSettleOnSelectionUpdate: true, autoVoidUnsupportedMarkets: true });
+  const [draft, setDraft] = useState<SettlementConfig>({
+    autoSettleOnSelectionUpdate: true,
+    autoVoidUnsupportedMarkets: true,
+    voidCancelledMatches: false,
+  });
 
   const q = useQuery({
     queryKey: ["settlement-config"],
@@ -74,6 +79,16 @@ export function SettlementConfigPage() {
               </div>
             </div>
             <Switch checked={draft.autoVoidUnsupportedMarkets} onCheckedChange={(v) => setDraft((d) => ({ ...d, autoVoidUnsupportedMarkets: Boolean(v) }))} />
+          </div>
+
+          <div className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4">
+            <div>
+              <div className="text-sm font-bold text-white">Void cancelled or postponed matches</div>
+              <div className="text-[11px] text-zinc-500">
+                Default: OFF. When ON, linked cancelled/postponed/abandoned matches settle as VOID and refund stake.
+              </div>
+            </div>
+            <Switch checked={draft.voidCancelledMatches} onCheckedChange={(v) => setDraft((d) => ({ ...d, voidCancelledMatches: Boolean(v) }))} />
           </div>
 
           <div className="pt-2 flex gap-2 items-center">

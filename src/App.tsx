@@ -31,6 +31,7 @@ import { ResultsDiagnosticsPage } from "./components/ResultsDiagnosticsPage";
 import { ApiFootballEventsLookupPage } from "./components/ApiFootballEventsLookupPage";
 import { ResultsUnsettledPage } from "./components/ResultsUnsettledPage";
 import { UnsettledMarketsPage } from "./components/UnsettledMarketsPage";
+import { ManualSettlementPage } from "./components/ManualSettlementPage";
 import { UnmappedFixturesPage } from "./components/UnmappedFixturesPage";
 import { MappedFixturesPage } from "./components/MappedFixturesPage";
 import { ShopManagementPage } from "./components/ShopManagement";
@@ -206,6 +207,7 @@ export default function App() {
                     <Route path="/results-run-now" element={<ResultsRunNowPage />} />
                     <Route path="/results-unsettled" element={<ResultsUnsettledPage />} />
                     <Route path="/results-unsettled-markets" element={<UnsettledMarketsPage />} />
+                    <Route path="/manual-settlement" element={currentRole === "SUPER_ADMIN" ? <ManualSettlementPage /> : <div className="p-8 text-zinc-400">Forbidden: super admin only.</div>} />
                     <Route path="/results-diagnostics" element={<ResultsDiagnosticsPage />} />
                     <Route path="/apifootball-events" element={<ApiFootballEventsLookupPage />} />
                     <Route path="/results" element={<ResultsPage />} />

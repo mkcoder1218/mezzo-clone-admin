@@ -41,6 +41,7 @@ export function WorkersPage() {
   const runWorker = useMutation({
     mutationFn: async (key: string) => {
       if (key === "mezzo_football") return dataFetchingApi.adminRunMezzoFootballWorker();
+      if (key === "thestatsapi_multisport") return dataFetchingApi.adminRunTheStatsApiMultiSportWorker();
       if (key === "thestatsapi_missing_odds") return dataFetchingApi.adminRunTheStatsApiMissingOddsWorker();
       throw new Error("Manual run is not available for this worker");
     },
@@ -55,6 +56,7 @@ export function WorkersPage() {
     { key: "results", label: "Results Worker", desc: "Settles finished fixtures and updates slips." },
     { key: "betslip_placement", label: "Bet Placement Worker", desc: "Finalizes queued bet placements asynchronously." },
     { key: "mezzo_football", label: "Mezzo Football Worker", desc: "Fetches/stores Mezzo football games every 3 hours for StatsAPI detail matching.", manual: true },
+    { key: "thestatsapi_multisport", label: "StatsAPI Multi-Sport Worker", desc: "Fetches fixtures and odds for every enabled TheStatsAPI sport.", manual: true },
     { key: "thestatsapi_missing_odds", label: "StatsAPI DB to Mezzo Odds", desc: "Uses stored StatsAPI fixtures missing odds, matches them to Mezzo, and fills from Mezzo every 3 hours.", manual: true },
   ];
 
