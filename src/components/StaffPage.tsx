@@ -18,7 +18,6 @@ type StaffRecord = {
   isActive: boolean;
   createdAt: string;
   Role?: { name: string };
-  commissionPercent?: string | number | null;
   maxWinningAmount?: string | number | null;
   maxWithdrawalAmount?: string | number | null;
 };
@@ -34,7 +33,6 @@ export function StaffPage({ role }: { role: UserRole }) {
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [cashierCount, setCashierCount] = useState("1");
-  const [commissionPercent, setCommissionPercent] = useState("");
   const [maxWinningAmount, setMaxWinningAmount] = useState("");
   const [maxWithdrawalAmount, setMaxWithdrawalAmount] = useState("");
 
@@ -43,7 +41,6 @@ export function StaffPage({ role }: { role: UserRole }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editPassword, setEditPassword] = useState("");
-  const [editCommissionPercent, setEditCommissionPercent] = useState("");
   const [editMaxWinningAmount, setEditMaxWinningAmount] = useState("");
   const [editMaxWithdrawalAmount, setEditMaxWithdrawalAmount] = useState("");
 
@@ -86,7 +83,8 @@ export function StaffPage({ role }: { role: UserRole }) {
             loginName: base.toLowerCase().replace(/\s+/g, "_"),
             password,
             displayName: base,
-            commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
+            // Commission percentage will be handled by the calculator flow.
+            // commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
             maxWinningAmount: maxWinningAmount === "" ? undefined : Number(maxWinningAmount),
             maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
           })
@@ -102,7 +100,8 @@ export function StaffPage({ role }: { role: UserRole }) {
               loginName: cashierLogin,
               password,
               displayName: cashierDisplay,
-              commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
+              // Commission percentage will be handled by the calculator flow.
+              // commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
               maxWinningAmount: maxWinningAmount === "" ? undefined : Number(maxWinningAmount),
               maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
             })
@@ -114,7 +113,6 @@ export function StaffPage({ role }: { role: UserRole }) {
       setPassword("");
       setDisplayName("");
       setCashierCount("1");
-      setCommissionPercent("");
       setMaxWinningAmount("");
       setMaxWithdrawalAmount("");
       await fetchAll();
@@ -177,17 +175,6 @@ export function StaffPage({ role }: { role: UserRole }) {
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">How Many Cashiers</label>
                     <Input value={cashierCount} onChange={(e) => setCashierCount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Commission % (optional)</label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="e.g. 10"
-                    value={commissionPercent}
-                    onChange={(e) => setCommissionPercent(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -291,7 +278,6 @@ export function StaffPage({ role }: { role: UserRole }) {
                           setEditId(u.id);
                           setEditDisplayName(u.displayName || "");
                           setEditPassword("");
-                          setEditCommissionPercent((u as any).commissionPercent == null ? "" : String((u as any).commissionPercent));
                           setEditMaxWinningAmount(u.maxWinningAmount == null ? "" : String(u.maxWinningAmount));
                           setEditMaxWithdrawalAmount(u.maxWithdrawalAmount == null ? "" : String(u.maxWithdrawalAmount));
                           setEditOpen(true);
@@ -332,16 +318,6 @@ export function StaffPage({ role }: { role: UserRole }) {
               <Input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="bg-zinc-900 border-zinc-800" />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Commission % (optional)</label>
-              <Input
-                inputMode="decimal"
-                placeholder="e.g. 10"
-                value={editCommissionPercent}
-                onChange={(e) => setEditCommissionPercent(e.target.value)}
-                className="bg-zinc-900 border-zinc-800"
-              />
-            </div>
-            <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Max Winning Amount</label>
               <Input
                 inputMode="decimal"
@@ -378,7 +354,8 @@ export function StaffPage({ role }: { role: UserRole }) {
                     body: JSON.stringify({
                       displayName: editDisplayName || undefined,
                       password: editPassword || undefined,
-                      commissionPercent: editCommissionPercent === "" ? undefined : Number(editCommissionPercent),
+                      // Commission percentage will be handled by the calculator flow.
+                      // commissionPercent: editCommissionPercent === "" ? undefined : Number(editCommissionPercent),
                       maxWinningAmount: editMaxWinningAmount === "" ? null : Number(editMaxWinningAmount),
                       maxWithdrawalAmount: editMaxWithdrawalAmount === "" ? null : Number(editMaxWithdrawalAmount),
                     })

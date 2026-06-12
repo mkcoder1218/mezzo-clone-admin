@@ -18,7 +18,6 @@ type AgentRecord = {
   isActive: boolean;
   createdAt: string;
   Role?: { name: string };
-  commissionPercent?: string | number | null;
   maxWithdrawalAmount?: string | number | null;
 };
 
@@ -42,7 +41,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [roleId, setRoleId] = useState<string>("");
-  const [commissionPercent, setCommissionPercent] = useState("");
   const [maxWithdrawalAmount, setMaxWithdrawalAmount] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
@@ -53,7 +51,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [editPassword, setEditPassword] = useState("");
   const [editRoleId, setEditRoleId] = useState("");
   const [editIsActive, setEditIsActive] = useState<"true" | "false">("true");
-  const [editCommissionPercent, setEditCommissionPercent] = useState("");
   const [editMaxWithdrawalAmount, setEditMaxWithdrawalAmount] = useState("");
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
@@ -104,7 +101,8 @@ export function AgentsPage({ role }: { role: UserRole }) {
           phoneNumber,
           password,
           displayName: displayName || undefined,
-          commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
+          // Commission percentage will be handled by the calculator flow.
+          // commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
           maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
           roleId
         })
@@ -114,7 +112,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
       setPassword("");
       setDisplayName("");
       setRoleId("");
-      setCommissionPercent("");
       setMaxWithdrawalAmount("");
       await fetchAgents();
     } catch (e: any) {
@@ -135,7 +132,8 @@ export function AgentsPage({ role }: { role: UserRole }) {
       patch.isActive = editIsActive === "true";
       if (editPassword) patch.password = editPassword;
       if (editRoleId) patch.roleId = editRoleId;
-      if (editCommissionPercent !== "") patch.commissionPercent = Number(editCommissionPercent);
+      // Commission percentage will be handled by the calculator flow.
+      // if (editCommissionPercent !== "") patch.commissionPercent = Number(editCommissionPercent);
       patch.maxWithdrawalAmount = editMaxWithdrawalAmount === "" ? null : Number(editMaxWithdrawalAmount);
 
       await apiRequest(`/api/users/${editing.id}`, {
@@ -221,17 +219,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Display Name</label>
                     <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="bg-zinc-900 border-zinc-800" />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Commission % (optional)</label>
-                  <Input
-                    inputMode="decimal"
-                    placeholder="e.g. 10"
-                    value={commissionPercent}
-                    onChange={(e) => setCommissionPercent(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800"
-                  />
                 </div>
 
                 <div className="space-y-2">
@@ -323,7 +310,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
                             setEditDisplayName(a.displayName || "");
                             setEditRoleId(roles.find((r) => r.name === a.Role?.name)?.id || "");
                             setEditIsActive(a.isActive ? "true" : "false");
-                            setEditCommissionPercent((a as any).commissionPercent == null ? "" : String((a as any).commissionPercent));
                             setEditMaxWithdrawalAmount(a.maxWithdrawalAmount == null ? "" : String(a.maxWithdrawalAmount));
                             setEditPassword("");
                             setEditOpen(true);
@@ -419,16 +405,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Commission % (optional)</label>
-              <Input
-                inputMode="decimal"
-                placeholder="e.g. 10"
-                value={editCommissionPercent}
-                onChange={(e) => setEditCommissionPercent(e.target.value)}
-                className="bg-zinc-900 border-zinc-800"
-              />
-            </div>
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
               <Input

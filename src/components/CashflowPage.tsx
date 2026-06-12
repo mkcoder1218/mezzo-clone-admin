@@ -18,8 +18,8 @@ type CashflowRow = {
   payouts: number;
   unclaimed: number;
   generated: number;
-  commissionPercent: number | null;
-  income: number;
+  commissionPercent?: number | null;
+  income?: number;
 };
 
 type CashflowFilters = {
@@ -118,8 +118,8 @@ export function CashflowPage({ role }: { role: UserRole }) {
   const serverFilters = q.data?.filters;
   const title = isSuperAdmin ? "Agent Cashflow" : "Cashier Cashflow";
   const desc = isSuperAdmin
-    ? "Income and performance per agent (commission based)."
-    : "Income and performance per cashier under you (commission based).";
+    ? "Performance per agent."
+    : "Performance per cashier under you.";
 
   const totals = useMemo(() => {
     const totalTickets = rows.reduce((a, r) => a + Number(r.tickets || 0), 0);
@@ -127,8 +127,9 @@ export function CashflowPage({ role }: { role: UserRole }) {
     const totalPayouts = rows.reduce((a, r) => a + Number(r.payouts || 0), 0);
     const totalUnclaimed = rows.reduce((a, r) => a + Number(r.unclaimed || 0), 0);
     const totalGenerated = rows.reduce((a, r) => a + Number(r.generated || 0), 0);
-    const totalIncome = rows.reduce((a, r) => a + Number(r.income || 0), 0);
-    return { totalTickets, totalBets, totalPayouts, totalUnclaimed, totalGenerated, totalIncome };
+    // Income/commission percentage will be handled by the calculator flow.
+    // const totalIncome = rows.reduce((a, r) => a + Number(r.income || 0), 0);
+    return { totalTickets, totalBets, totalPayouts, totalUnclaimed, totalGenerated };
   }, [rows]);
 
   return (
@@ -225,7 +226,7 @@ export function CashflowPage({ role }: { role: UserRole }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card className="bg-[#1A1A1A] border-zinc-800">
           <CardHeader>
             <CardDescription>Tickets</CardDescription>
@@ -254,12 +255,6 @@ export function CashflowPage({ role }: { role: UserRole }) {
           <CardHeader>
             <CardDescription>Total Generated</CardDescription>
             <CardTitle className="text-3xl text-white">{money(totals.totalGenerated)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-[#1A1A1A] border-zinc-800">
-          <CardHeader>
-            <CardDescription>Total Income</CardDescription>
-            <CardTitle className="text-3xl text-white">{money(totals.totalIncome)}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -292,8 +287,6 @@ export function CashflowPage({ role }: { role: UserRole }) {
                   <TableHead className="text-zinc-400">Payouts</TableHead>
                   <TableHead className="text-zinc-400">Unclaimed</TableHead>
                   <TableHead className="text-zinc-400">Generated</TableHead>
-                  <TableHead className="text-zinc-400">%</TableHead>
-                  <TableHead className="text-zinc-400 text-right">Income</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -312,13 +305,11 @@ export function CashflowPage({ role }: { role: UserRole }) {
                     <TableCell>{money(r.payouts)}</TableCell>
                     <TableCell>{money(r.unclaimed)}</TableCell>
                     <TableCell className="text-brand">{money(r.generated)}</TableCell>
-                    <TableCell>{r.commissionPercent === null ? "—" : `${money(r.commissionPercent)}%`}</TableCell>
-                    <TableCell className="text-right font-bold">{money(r.income)}</TableCell>
                   </TableRow>
                 ))}
                 {rows.length === 0 ? (
                   <TableRow className="border-zinc-900">
-                    <TableCell colSpan={10} className="text-zinc-400 py-8 text-center">
+                    <TableCell colSpan={8} className="text-zinc-400 py-8 text-center">
                       No data.
                     </TableCell>
                   </TableRow>
