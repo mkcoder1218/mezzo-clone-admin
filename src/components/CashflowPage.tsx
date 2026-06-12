@@ -13,6 +13,10 @@ type CashflowRow = {
   login: string | null;
   initialLimit: number;
   currentLimit: number;
+  tickets: number;
+  bets: number;
+  payouts: number;
+  unclaimed: number;
   generated: number;
   commissionPercent: number | null;
   income: number;
@@ -118,9 +122,13 @@ export function CashflowPage({ role }: { role: UserRole }) {
     : "Income and performance per cashier under you (commission based).";
 
   const totals = useMemo(() => {
+    const totalTickets = rows.reduce((a, r) => a + Number(r.tickets || 0), 0);
+    const totalBets = rows.reduce((a, r) => a + Number(r.bets || 0), 0);
+    const totalPayouts = rows.reduce((a, r) => a + Number(r.payouts || 0), 0);
+    const totalUnclaimed = rows.reduce((a, r) => a + Number(r.unclaimed || 0), 0);
     const totalGenerated = rows.reduce((a, r) => a + Number(r.generated || 0), 0);
     const totalIncome = rows.reduce((a, r) => a + Number(r.income || 0), 0);
-    return { totalGenerated, totalIncome };
+    return { totalTickets, totalBets, totalPayouts, totalUnclaimed, totalGenerated, totalIncome };
   }, [rows]);
 
   return (
@@ -217,7 +225,31 @@ export function CashflowPage({ role }: { role: UserRole }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <Card className="bg-[#1A1A1A] border-zinc-800">
+          <CardHeader>
+            <CardDescription>Tickets</CardDescription>
+            <CardTitle className="text-3xl text-white">{totals.totalTickets.toLocaleString()}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-[#1A1A1A] border-zinc-800">
+          <CardHeader>
+            <CardDescription>Bets</CardDescription>
+            <CardTitle className="text-3xl text-white">{money(totals.totalBets)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-[#1A1A1A] border-zinc-800">
+          <CardHeader>
+            <CardDescription>Payouts</CardDescription>
+            <CardTitle className="text-3xl text-white">{money(totals.totalPayouts)}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card className="bg-[#1A1A1A] border-zinc-800">
+          <CardHeader>
+            <CardDescription>Unclaimed</CardDescription>
+            <CardTitle className="text-3xl text-white">{money(totals.totalUnclaimed)}</CardTitle>
+          </CardHeader>
+        </Card>
         <Card className="bg-[#1A1A1A] border-zinc-800">
           <CardHeader>
             <CardDescription>Total Generated</CardDescription>
@@ -255,6 +287,10 @@ export function CashflowPage({ role }: { role: UserRole }) {
                   <TableHead className="text-zinc-400">{isSuperAdmin ? "Agent" : "Cashier"}</TableHead>
                   <TableHead className="text-zinc-400">Initial Limit</TableHead>
                   <TableHead className="text-zinc-400">Current Limit</TableHead>
+                  <TableHead className="text-zinc-400">Tickets</TableHead>
+                  <TableHead className="text-zinc-400">Bets</TableHead>
+                  <TableHead className="text-zinc-400">Payouts</TableHead>
+                  <TableHead className="text-zinc-400">Unclaimed</TableHead>
                   <TableHead className="text-zinc-400">Generated</TableHead>
                   <TableHead className="text-zinc-400">%</TableHead>
                   <TableHead className="text-zinc-400 text-right">Income</TableHead>
@@ -271,6 +307,10 @@ export function CashflowPage({ role }: { role: UserRole }) {
                     </TableCell>
                     <TableCell>{money(r.initialLimit)}</TableCell>
                     <TableCell>{money(r.currentLimit)}</TableCell>
+                    <TableCell>{Number(r.tickets || 0).toLocaleString()}</TableCell>
+                    <TableCell>{money(r.bets)}</TableCell>
+                    <TableCell>{money(r.payouts)}</TableCell>
+                    <TableCell>{money(r.unclaimed)}</TableCell>
                     <TableCell className="text-brand">{money(r.generated)}</TableCell>
                     <TableCell>{r.commissionPercent === null ? "—" : `${money(r.commissionPercent)}%`}</TableCell>
                     <TableCell className="text-right font-bold">{money(r.income)}</TableCell>
@@ -278,7 +318,7 @@ export function CashflowPage({ role }: { role: UserRole }) {
                 ))}
                 {rows.length === 0 ? (
                   <TableRow className="border-zinc-900">
-                    <TableCell colSpan={6} className="text-zinc-400 py-8 text-center">
+                    <TableCell colSpan={10} className="text-zinc-400 py-8 text-center">
                       No data.
                     </TableCell>
                   </TableRow>

@@ -18,6 +18,8 @@ type AgentRecord = {
   isActive: boolean;
   createdAt: string;
   Role?: { name: string };
+  commissionPercent?: string | number | null;
+  maxWithdrawalAmount?: string | number | null;
 };
 
 type RoleRecord = { id: string; name: string };
@@ -41,6 +43,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [displayName, setDisplayName] = useState("");
   const [roleId, setRoleId] = useState<string>("");
   const [commissionPercent, setCommissionPercent] = useState("");
+  const [maxWithdrawalAmount, setMaxWithdrawalAmount] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
@@ -51,6 +54,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [editRoleId, setEditRoleId] = useState("");
   const [editIsActive, setEditIsActive] = useState<"true" | "false">("true");
   const [editCommissionPercent, setEditCommissionPercent] = useState("");
+  const [editMaxWithdrawalAmount, setEditMaxWithdrawalAmount] = useState("");
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   const canCreateSuperAgent = role === "SUPER_ADMIN";
@@ -101,6 +105,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
           password,
           displayName: displayName || undefined,
           commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
+          maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
           roleId
         })
       });
@@ -110,6 +115,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
       setDisplayName("");
       setRoleId("");
       setCommissionPercent("");
+      setMaxWithdrawalAmount("");
       await fetchAgents();
     } catch (e: any) {
       setError(e?.message || "Failed to create agent");
@@ -130,6 +136,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
       if (editPassword) patch.password = editPassword;
       if (editRoleId) patch.roleId = editRoleId;
       if (editCommissionPercent !== "") patch.commissionPercent = Number(editCommissionPercent);
+      patch.maxWithdrawalAmount = editMaxWithdrawalAmount === "" ? null : Number(editMaxWithdrawalAmount);
 
       await apiRequest(`/api/users/${editing.id}`, {
         method: "PATCH",
@@ -228,6 +235,17 @@ export function AgentsPage({ role }: { role: UserRole }) {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="e.g. 5000"
+                    value={maxWithdrawalAmount}
+                    onChange={(e) => setMaxWithdrawalAmount(e.target.value)}
+                    className="bg-zinc-900 border-zinc-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Password</label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-zinc-900 border-zinc-800" />
                 </div>
@@ -272,6 +290,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
                 <TableHead className="text-zinc-400">Type</TableHead>
                 <TableHead className="text-zinc-400">Display Name</TableHead>
                 <TableHead className="text-zinc-400">Phone</TableHead>
+                <TableHead className="text-zinc-400 text-right">Withdrawal Limit</TableHead>
                 <TableHead className="text-zinc-400">Status</TableHead>
                 <TableHead className="text-zinc-400">Created</TableHead>
                 {role === "SUPER_ADMIN" ? <TableHead className="text-zinc-400 text-right">Edit</TableHead> : null}
@@ -287,6 +306,9 @@ export function AgentsPage({ role }: { role: UserRole }) {
                   </TableCell>
                   <TableCell className="text-white">{a.displayName || "-"}</TableCell>
                   <TableCell className="text-zinc-300">{a.phoneNumber}</TableCell>
+                  <TableCell className="text-right text-zinc-300">
+                    {a.maxWithdrawalAmount == null || a.maxWithdrawalAmount === "" ? "No limit" : Number(a.maxWithdrawalAmount).toLocaleString()}
+                  </TableCell>
                   <TableCell>
                     <Badge className={a.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{a.isActive ? "ACTIVE" : "DISABLED"}</Badge>
                   </TableCell>
@@ -302,6 +324,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
                             setEditRoleId(roles.find((r) => r.name === a.Role?.name)?.id || "");
                             setEditIsActive(a.isActive ? "true" : "false");
                             setEditCommissionPercent((a as any).commissionPercent == null ? "" : String((a as any).commissionPercent));
+                            setEditMaxWithdrawalAmount(a.maxWithdrawalAmount == null ? "" : String(a.maxWithdrawalAmount));
                             setEditPassword("");
                             setEditOpen(true);
                           }}
@@ -325,7 +348,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
               ))}
               {agents.length === 0 && !loading ? (
                 <TableRow className="border-zinc-900">
-                  <TableCell colSpan={5} className="text-zinc-400 py-8 text-center">
+                  <TableCell colSpan={role === "SUPER_ADMIN" ? 7 : 6} className="text-zinc-400 py-8 text-center">
                     No agents found.
                   </TableCell>
                 </TableRow>
@@ -403,6 +426,16 @@ export function AgentsPage({ role }: { role: UserRole }) {
                 placeholder="e.g. 10"
                 value={editCommissionPercent}
                 onChange={(e) => setEditCommissionPercent(e.target.value)}
+                className="bg-zinc-900 border-zinc-800"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+              <Input
+                inputMode="decimal"
+                placeholder="e.g. 5000"
+                value={editMaxWithdrawalAmount}
+                onChange={(e) => setEditMaxWithdrawalAmount(e.target.value)}
                 className="bg-zinc-900 border-zinc-800"
               />
             </div>

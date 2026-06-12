@@ -20,6 +20,7 @@ type StaffRecord = {
   Role?: { name: string };
   commissionPercent?: string | number | null;
   maxWinningAmount?: string | number | null;
+  maxWithdrawalAmount?: string | number | null;
 };
 
 export function StaffPage({ role }: { role: UserRole }) {
@@ -35,6 +36,7 @@ export function StaffPage({ role }: { role: UserRole }) {
   const [cashierCount, setCashierCount] = useState("1");
   const [commissionPercent, setCommissionPercent] = useState("");
   const [maxWinningAmount, setMaxWinningAmount] = useState("");
+  const [maxWithdrawalAmount, setMaxWithdrawalAmount] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
@@ -43,6 +45,7 @@ export function StaffPage({ role }: { role: UserRole }) {
   const [editPassword, setEditPassword] = useState("");
   const [editCommissionPercent, setEditCommissionPercent] = useState("");
   const [editMaxWinningAmount, setEditMaxWinningAmount] = useState("");
+  const [editMaxWithdrawalAmount, setEditMaxWithdrawalAmount] = useState("");
 
   const cashierRoleId = useMemo(() => roles.find((r) => r.name === "cashier")?.id || "", [roles]);
 
@@ -85,6 +88,7 @@ export function StaffPage({ role }: { role: UserRole }) {
             displayName: base,
             commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
             maxWinningAmount: maxWinningAmount === "" ? undefined : Number(maxWinningAmount),
+            maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
           })
         });
       } else {
@@ -100,6 +104,7 @@ export function StaffPage({ role }: { role: UserRole }) {
               displayName: cashierDisplay,
               commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
               maxWinningAmount: maxWinningAmount === "" ? undefined : Number(maxWinningAmount),
+              maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
             })
           });
         }
@@ -111,6 +116,7 @@ export function StaffPage({ role }: { role: UserRole }) {
       setCashierCount("1");
       setCommissionPercent("");
       setMaxWinningAmount("");
+      setMaxWithdrawalAmount("");
       await fetchAll();
     } catch (e: any) {
       setError(e?.message || "Failed to create user");
@@ -197,6 +203,17 @@ export function StaffPage({ role }: { role: UserRole }) {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="e.g. 5000"
+                    value={maxWithdrawalAmount}
+                    onChange={(e) => setMaxWithdrawalAmount(e.target.value)}
+                    className="bg-zinc-900 border-zinc-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Password</label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-zinc-900 border-zinc-800" />
                 </div>
@@ -232,6 +249,7 @@ export function StaffPage({ role }: { role: UserRole }) {
                 <TableHead className="text-zinc-400">Cashier</TableHead>
                 <TableHead className="text-zinc-400">Display Name</TableHead>
                 <TableHead className="text-zinc-400 text-right">Max Win</TableHead>
+                <TableHead className="text-zinc-400 text-right">Withdrawal Limit</TableHead>
                 <TableHead className="text-zinc-400">Status</TableHead>
                 <TableHead className="text-zinc-400">Created</TableHead>
                 <TableHead className="text-zinc-400 text-right">Action</TableHead>
@@ -246,6 +264,9 @@ export function StaffPage({ role }: { role: UserRole }) {
                   <TableCell className="text-white">{u.displayName || "-"}</TableCell>
                   <TableCell className="text-right text-zinc-300">
                     {u.maxWinningAmount == null || u.maxWinningAmount === "" ? "No limit" : Number(u.maxWinningAmount).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right text-zinc-300">
+                    {u.maxWithdrawalAmount == null || u.maxWithdrawalAmount === "" ? "No limit" : Number(u.maxWithdrawalAmount).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge className={u.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{u.isActive ? "ACTIVE" : "DISABLED"}</Badge>
@@ -272,6 +293,7 @@ export function StaffPage({ role }: { role: UserRole }) {
                           setEditPassword("");
                           setEditCommissionPercent((u as any).commissionPercent == null ? "" : String((u as any).commissionPercent));
                           setEditMaxWinningAmount(u.maxWinningAmount == null ? "" : String(u.maxWinningAmount));
+                          setEditMaxWithdrawalAmount(u.maxWithdrawalAmount == null ? "" : String(u.maxWithdrawalAmount));
                           setEditOpen(true);
                         }}
                       >
@@ -283,7 +305,7 @@ export function StaffPage({ role }: { role: UserRole }) {
               ))}
               {items.length === 0 && !loading ? (
                 <TableRow className="border-zinc-900">
-                  <TableCell colSpan={6} className="text-zinc-400 py-8 text-center">
+                  <TableCell colSpan={7} className="text-zinc-400 py-8 text-center">
                     No cashiers found.
                   </TableCell>
                 </TableRow>
@@ -329,6 +351,16 @@ export function StaffPage({ role }: { role: UserRole }) {
                 className="bg-zinc-900 border-zinc-800"
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+              <Input
+                inputMode="decimal"
+                placeholder="e.g. 5000"
+                value={editMaxWithdrawalAmount}
+                onChange={(e) => setEditMaxWithdrawalAmount(e.target.value)}
+                className="bg-zinc-900 border-zinc-800"
+              />
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
@@ -348,6 +380,7 @@ export function StaffPage({ role }: { role: UserRole }) {
                       password: editPassword || undefined,
                       commissionPercent: editCommissionPercent === "" ? undefined : Number(editCommissionPercent),
                       maxWinningAmount: editMaxWinningAmount === "" ? null : Number(editMaxWinningAmount),
+                      maxWithdrawalAmount: editMaxWithdrawalAmount === "" ? null : Number(editMaxWithdrawalAmount),
                     })
                   });
                   setEditOpen(false);
