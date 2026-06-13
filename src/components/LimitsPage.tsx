@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, RefreshCcw } from "lucide-react";
+import { Pencil, Plus, RefreshCcw, Wallet } from "lucide-react";
 import { apiRequest } from "../lib/apiClient";
 import type { UserRole } from "../types";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ type TreeItem = {
   isActive: boolean;
   createdById?: string | null;
   roleName?: string | null;
+  maxWithdrawalAmount?: string | number | null;
   limit: LimitRow;
 };
 
@@ -37,7 +38,10 @@ export function LimitsPage({ role }: { role: UserRole }) {
   const [busy, setBusy] = useState(false);
   const [targetUserId, setTargetUserId] = useState("");
   const [amount, setAmount] = useState("");
-  const [editRowId, setEditRowId] = useState<string | null>(null);
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
+  const [withdrawalBusy, setWithdrawalBusy] = useState(false);
+  const [withdrawalTargetUserId, setWithdrawalTargetUserId] = useState("");
+  const [withdrawalAmount, setWithdrawalAmount] = useState("");
 
   const isSuperAdmin = role === "SUPER_ADMIN";
   const actionLabel = isSuperAdmin ? "Assign" : "Allocate";
@@ -50,6 +54,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
     return items;
   }, [items, isSuperAdmin]);
   const selectedTarget = eligibleTargets.find((u) => u.id === targetUserId);
+  const selectedWithdrawalTarget = items.find((u) => u.id === withdrawalTargetUserId);
 
   async function fetchAll() {
     setLoading(true);
@@ -97,6 +102,30 @@ export function LimitsPage({ role }: { role: UserRole }) {
       setError(e?.message || "Failed to update limit");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function submitWithdrawalLimit() {
+    setWithdrawalBusy(true);
+    setError(null);
+    try {
+      const trimmed = withdrawalAmount.trim();
+      const value = trimmed === "" ? null : Number(trimmed);
+      if (value !== null && (!Number.isFinite(value) || value < 0)) throw new Error("Invalid withdrawal limit");
+
+      await apiRequest("/api/limits/withdrawal", {
+        method: "PATCH",
+        body: JSON.stringify({ userId: withdrawalTargetUserId, maxWithdrawalAmount: value }),
+      });
+
+      setWithdrawalOpen(false);
+      setWithdrawalTargetUserId("");
+      setWithdrawalAmount("");
+      await fetchAll();
+    } catch (e: any) {
+      setError(e?.message || "Failed to update withdrawal limit");
+    } finally {
+      setWithdrawalBusy(false);
     }
   }
 
@@ -182,6 +211,68 @@ export function LimitsPage({ role }: { role: UserRole }) {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          <Dialog open={withdrawalOpen} onOpenChange={setWithdrawalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-zinc-800 hover:bg-zinc-700 text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Withdrawal Limit
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-[#111111] border-zinc-800 text-white">
+              <DialogHeader>
+                <DialogTitle>Set Withdrawal Limit</DialogTitle>
+                <DialogDescription className="text-zinc-400">
+                  Set the maximum amount this account can process per withdrawal. Leave empty for no limit.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Target</label>
+                  <Select value={withdrawalTargetUserId} onValueChange={setWithdrawalTargetUserId}>
+                    <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                      <SelectValue placeholder={items.length ? "Select user" : "No users"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#111111] border-zinc-800 text-white">
+                      {items.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {(u.displayName || u.phoneNumber) + " (" + (u.roleName || "unknown") + ")"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+                  <Input value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                  <p className="text-xs text-zinc-500 pl-1">
+                    Current:{" "}
+                    <span className="text-zinc-300">
+                      {selectedWithdrawalTarget?.maxWithdrawalAmount == null || selectedWithdrawalTarget?.maxWithdrawalAmount === ""
+                        ? "No limit"
+                        : money(selectedWithdrawalTarget.maxWithdrawalAmount)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-2">
+                <Button
+                  onClick={() => setWithdrawalOpen(false)}
+                  variant="secondary"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                  disabled={withdrawalBusy}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={submitWithdrawalLimit}
+                  className="bg-brand text-black hover:bg-brand/80"
+                  disabled={withdrawalBusy || !withdrawalTargetUserId}
+                >
+                  {withdrawalBusy ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
@@ -202,12 +293,13 @@ export function LimitsPage({ role }: { role: UserRole }) {
                 <TableHead className="text-zinc-400">Role</TableHead>
                 <TableHead className="text-zinc-400">Name</TableHead>
                 <TableHead className="text-zinc-400">Phone</TableHead>
-              <TableHead className="text-zinc-400">Limit</TableHead>
-              <TableHead className="text-zinc-400">Status</TableHead>
-              <TableHead className="text-zinc-400 text-right">Set</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+                <TableHead className="text-zinc-400">Limit</TableHead>
+                <TableHead className="text-zinc-400">Withdrawal Limit</TableHead>
+                <TableHead className="text-zinc-400">Status</TableHead>
+                <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((u) => (
                 <TableRow key={u.id} className="border-zinc-900">
                   <TableCell>
@@ -215,33 +307,46 @@ export function LimitsPage({ role }: { role: UserRole }) {
                   </TableCell>
                   <TableCell className="text-white">{u.displayName || "-"}</TableCell>
                   <TableCell className="text-zinc-300">{u.phoneNumber || "-"}</TableCell>
-                <TableCell className="text-zinc-300 font-mono">{u.limit?.totalLimit || "0"}</TableCell>
-                <TableCell>
-                  <Badge className={u.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{u.isActive ? "ACTIVE" : "DISABLED"}</Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    onClick={() => {
-                      setTargetUserId(u.id);
-                      setAmount(isSuperAdmin ? String(u.limit?.totalLimit || "0") : "");
-                      setEditRowId(u.id);
-                      setOpen(true);
-                    }}
-                    className="bg-zinc-800 hover:bg-zinc-700 px-3"
-                    title="Set limit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {items.length === 0 && !loading ? (
-              <TableRow className="border-zinc-900">
-                  <TableCell colSpan={6} className="text-zinc-400 py-8 text-center">
+                  <TableCell className="text-zinc-300 font-mono">{u.limit?.totalLimit || "0"}</TableCell>
+                  <TableCell className="text-zinc-300 font-mono">
+                    {u.maxWithdrawalAmount == null || u.maxWithdrawalAmount === "" ? "No limit" : money(u.maxWithdrawalAmount)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={u.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{u.isActive ? "ACTIVE" : "DISABLED"}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      onClick={() => {
+                        setTargetUserId(u.id);
+                        setAmount(isSuperAdmin ? String(u.limit?.totalLimit || "0") : "");
+                        setOpen(true);
+                      }}
+                      className="bg-zinc-800 hover:bg-zinc-700 px-3"
+                      title="Set credit limit"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setWithdrawalTargetUserId(u.id);
+                        setWithdrawalAmount(u.maxWithdrawalAmount == null || u.maxWithdrawalAmount === "" ? "" : String(u.maxWithdrawalAmount));
+                        setWithdrawalOpen(true);
+                      }}
+                      className="ml-2 bg-zinc-800 hover:bg-zinc-700 px-3"
+                      title="Set withdrawal limit"
+                    >
+                      <Wallet className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {items.length === 0 && !loading ? (
+                <TableRow className="border-zinc-900">
+                  <TableCell colSpan={7} className="text-zinc-400 py-8 text-center">
                     No users found under your hierarchy.
                   </TableCell>
-              </TableRow>
-            ) : null}
+                </TableRow>
+              ) : null}
             </TableBody>
           </Table>
         </CardContent>
