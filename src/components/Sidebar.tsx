@@ -18,7 +18,6 @@ import {
   TrendingUp,
   ChevronDown,
   LogOut,
-  X,
   Zap,
 } from "lucide-react";
 import { UserRole } from "../types";
@@ -121,14 +120,6 @@ export const Sidebar = ({
       <div className="p-6 shrink-0">
         <div className="flex items-center gap-2 mb-8">
           <img src="/brand/king5bet-logo.png" alt="KING5bet" className="h-16 w-auto max-w-[220px] object-contain drop-shadow-[0_0_15px_rgba(163,230,53,0.3)]" />
-          <button
-            type="button"
-            onClick={onClose}
-            className="ml-auto p-2 text-zinc-400 hover:text-white lg:hidden"
-            title="Close menu"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
 

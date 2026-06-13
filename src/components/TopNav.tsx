@@ -13,11 +13,11 @@ export const TopNav = ({ currentRole, onLogout, displayName, onOpenSidebar }: {
   onOpenSidebar?: () => void
 }) => {
   return (
-    <header className="h-16 sm:h-20 border-b border-zinc-800/50 bg-[#0A0A0A] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-50">
+    <header className="h-14 sm:h-20 border-b border-zinc-800/50 bg-[#0A0A0A] px-3 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-50">
       <button
         type="button"
         onClick={onOpenSidebar}
-        className="mr-3 p-2 text-zinc-400 hover:text-white lg:hidden"
+        className="mr-2 p-2 text-zinc-400 hover:text-white lg:hidden"
         title="Open menu"
       >
         <Menu className="w-5 h-5" />
@@ -31,7 +31,7 @@ export const TopNav = ({ currentRole, onLogout, displayName, onOpenSidebar }: {
            </span>
       </div>
 
-      <div className="flex items-center gap-3 sm:gap-6 ml-auto">
+      <div className="flex items-center gap-2 sm:gap-6 ml-auto">
         <div className="hidden sm:block h-8 w-[1px] bg-zinc-800" />
 
         <button className="p-2 text-zinc-400 hover:text-brand transition-colors relative group">
@@ -52,7 +52,7 @@ export const TopNav = ({ currentRole, onLogout, displayName, onOpenSidebar }: {
             <p className="text-xs font-bold text-white uppercase tracking-tight italic">{displayName}</p>
             <p className="text-[10px] text-emerald-500 font-mono">{currentRole.replace("_", " ")}</p>
           </div>
-          <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-zinc-800 text-brand font-black flex items-center justify-center hover:border-brand transition-all cursor-pointer">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-zinc-900 border border-zinc-800 text-brand font-black flex items-center justify-center hover:border-brand transition-all cursor-pointer">
             MZ
           </div>
         </div>

@@ -53,7 +53,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
     // Manager can allocate to descendants only (service enforces specifics).
     return items;
   }, [items, isSuperAdmin]);
-  const selectedTarget = eligibleTargets.find((u) => u.id === targetUserId);
+  const selectedTarget = items.find((u) => u.id === targetUserId);
   const selectedWithdrawalTarget = items.find((u) => u.id === withdrawalTargetUserId);
 
   async function fetchAll() {
@@ -110,12 +110,12 @@ export function LimitsPage({ role }: { role: UserRole }) {
     setError(null);
     try {
       const trimmed = withdrawalAmount.trim();
-      const value = trimmed === "" ? null : Number(trimmed);
-      if (value !== null && (!Number.isFinite(value) || value < 0)) throw new Error("Invalid withdrawal limit");
+      const value = Number(trimmed);
+      if (!Number.isFinite(value) || value <= 0) throw new Error("Invalid amount");
 
-      await apiRequest("/api/limits/withdrawal", {
-        method: "PATCH",
-        body: JSON.stringify({ userId: withdrawalTargetUserId, maxWithdrawalAmount: value }),
+      await apiRequest("/api/limits/reclaim", {
+        method: "POST",
+        body: JSON.stringify({ childUserId: withdrawalTargetUserId, amount: value }),
       });
 
       setWithdrawalOpen(false);
@@ -123,32 +123,32 @@ export function LimitsPage({ role }: { role: UserRole }) {
       setWithdrawalAmount("");
       await fetchAll();
     } catch (e: any) {
-      setError(e?.message || "Failed to update withdrawal limit");
+      setError(e?.message || "Failed to withdraw limit");
     } finally {
       setWithdrawalBusy(false);
     }
   }
 
   return (
-    <div className="space-y-8">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-white uppercase italic">
+    <div className="space-y-6 sm:space-y-8 min-w-0">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white uppercase italic leading-tight whitespace-normal sm:whitespace-nowrap">
             Limits <span className="text-brand">Control</span>
           </h1>
           <p className="text-zinc-400 mt-1">
             Your limit: <span className="text-white font-mono">{meLimit}</span>
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button onClick={fetchAll} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700">
-            <RefreshCcw className="w-4 h-4 mr-2" />
+        <div className="grid grid-cols-2 gap-2 shrink-0 w-full sm:flex sm:w-auto">
+          <Button onClick={fetchAll} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700 min-w-0 col-span-2 sm:col-span-1 sm:flex-none">
+            <RefreshCcw className="w-4 h-4 mr-2 shrink-0" />
             Refresh
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-brand text-black hover:bg-brand/80">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button className="bg-brand text-black hover:bg-brand/80 min-w-0 sm:flex-none">
+                <Plus className="w-4 h-4 mr-2 shrink-0" />
                 {actionLabel} Limit
               </Button>
             </DialogTrigger>
@@ -213,16 +213,16 @@ export function LimitsPage({ role }: { role: UserRole }) {
           </Dialog>
           <Dialog open={withdrawalOpen} onOpenChange={setWithdrawalOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-zinc-800 hover:bg-zinc-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Withdrawal Limit
+              <Button className="bg-zinc-800 hover:bg-zinc-700 text-white min-w-0 sm:flex-none">
+                <Plus className="w-4 h-4 mr-2 shrink-0" />
+                Withdraw Limit
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-[#111111] border-zinc-800 text-white">
               <DialogHeader>
-                <DialogTitle>Set Withdrawal Limit</DialogTitle>
+                <DialogTitle>Withdraw Limit</DialogTitle>
                 <DialogDescription className="text-zinc-400">
-                  Set the maximum amount this account can process per withdrawal. Leave empty for no limit.
+                  Take allocated limit back from someone in your hierarchy. This subtracts from their current limit and returns it to yours.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
@@ -242,16 +242,19 @@ export function LimitsPage({ role }: { role: UserRole }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Amount To Withdraw</label>
                   <Input value={withdrawalAmount} onChange={(e) => setWithdrawalAmount(e.target.value)} className="bg-zinc-900 border-zinc-800" />
-                  <p className="text-xs text-zinc-500 pl-1">
-                    Current:{" "}
-                    <span className="text-zinc-300">
-                      {selectedWithdrawalTarget?.maxWithdrawalAmount == null || selectedWithdrawalTarget?.maxWithdrawalAmount === ""
-                        ? "No limit"
-                        : money(selectedWithdrawalTarget.maxWithdrawalAmount)}
-                    </span>
-                  </p>
+                  <div className="space-y-1 pl-1 text-xs text-zinc-500">
+                    <p>
+                      Current limit:{" "}
+                      <span className="text-zinc-300">
+                        {selectedWithdrawalTarget ? money(selectedWithdrawalTarget.limit?.totalLimit) : "0.00"}
+                      </span>
+                      {selectedWithdrawalTarget && Number.isFinite(Number(withdrawalAmount)) && Number(withdrawalAmount) > 0 ? (
+                        <span> / After: <span className="text-zinc-300">{money(Math.max(0, Number(selectedWithdrawalTarget.limit?.totalLimit || 0) - Number(withdrawalAmount)))}</span></span>
+                      ) : null}
+                    </p>
+                  </div>
                 </div>
               </div>
               <DialogFooter className="gap-2 sm:gap-2">
@@ -266,9 +269,9 @@ export function LimitsPage({ role }: { role: UserRole }) {
                 <Button
                   onClick={submitWithdrawalLimit}
                   className="bg-brand text-black hover:bg-brand/80"
-                  disabled={withdrawalBusy || !withdrawalTargetUserId}
+                  disabled={withdrawalBusy || !withdrawalTargetUserId || withdrawalAmount.trim() === ""}
                 >
-                  {withdrawalBusy ? "Saving..." : "Save"}
+                  {withdrawalBusy ? "Withdrawing..." : "Withdraw"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -278,7 +281,7 @@ export function LimitsPage({ role }: { role: UserRole }) {
 
       {error ? <div className="text-sm text-red-400">{error}</div> : null}
 
-      <Card className="bg-[#1A1A1A] border-zinc-800">
+      <Card className="bg-[#1A1A1A] border-zinc-800 overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Hierarchy Limits</span>
@@ -286,15 +289,15 @@ export function LimitsPage({ role }: { role: UserRole }) {
           </CardTitle>
           <CardDescription className="text-zinc-500">Users under you and their assigned total limits.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table className="text-zinc-200">
+        <CardContent className="overflow-x-auto">
+          <div className="overflow-x-auto">
+          <Table className="text-zinc-200 min-w-[680px]">
             <TableHeader>
               <TableRow className="border-zinc-800">
                 <TableHead className="text-zinc-400">Role</TableHead>
                 <TableHead className="text-zinc-400">Name</TableHead>
                 <TableHead className="text-zinc-400">Phone</TableHead>
                 <TableHead className="text-zinc-400">Limit</TableHead>
-                <TableHead className="text-zinc-400">Withdrawal Limit</TableHead>
                 <TableHead className="text-zinc-400">Status</TableHead>
                 <TableHead className="text-zinc-400 text-right">Actions</TableHead>
               </TableRow>
@@ -308,9 +311,6 @@ export function LimitsPage({ role }: { role: UserRole }) {
                   <TableCell className="text-white">{u.displayName || "-"}</TableCell>
                   <TableCell className="text-zinc-300">{u.phoneNumber || "-"}</TableCell>
                   <TableCell className="text-zinc-300 font-mono">{u.limit?.totalLimit || "0"}</TableCell>
-                  <TableCell className="text-zinc-300 font-mono">
-                    {u.maxWithdrawalAmount == null || u.maxWithdrawalAmount === "" ? "No limit" : money(u.maxWithdrawalAmount)}
-                  </TableCell>
                   <TableCell>
                     <Badge className={u.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{u.isActive ? "ACTIVE" : "DISABLED"}</Badge>
                   </TableCell>
@@ -329,11 +329,11 @@ export function LimitsPage({ role }: { role: UserRole }) {
                     <Button
                       onClick={() => {
                         setWithdrawalTargetUserId(u.id);
-                        setWithdrawalAmount(u.maxWithdrawalAmount == null || u.maxWithdrawalAmount === "" ? "" : String(u.maxWithdrawalAmount));
+                        setWithdrawalAmount("");
                         setWithdrawalOpen(true);
                       }}
                       className="ml-2 bg-zinc-800 hover:bg-zinc-700 px-3"
-                      title="Set withdrawal limit"
+                      title="Withdraw limit"
                     >
                       <Wallet className="w-4 h-4" />
                     </Button>
@@ -342,13 +342,14 @@ export function LimitsPage({ role }: { role: UserRole }) {
               ))}
               {items.length === 0 && !loading ? (
                 <TableRow className="border-zinc-900">
-                  <TableCell colSpan={7} className="text-zinc-400 py-8 text-center">
+                  <TableCell colSpan={6} className="text-zinc-400 py-8 text-center">
                     No users found under your hierarchy.
                   </TableCell>
                 </TableRow>
               ) : null}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

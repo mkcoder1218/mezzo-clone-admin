@@ -58,6 +58,7 @@ import { TheStatsApiPage } from "./modules/thestatsapi/TheStatsApiPage";
 import { ProviderMatchingPage } from "./modules/provider-matching/ProviderMatchingPage";
 import { Button } from "@/components/ui/button";
 import { authApi } from "./modules/auth/api";
+import { ToastHost } from "./components/ToastHost";
 
 export default function App() {
   const [currentRole, setCurrentRole] = useState<UserRole>("SUPER_ADMIN");
@@ -135,16 +136,27 @@ export default function App() {
   const hasPermission = (key: string) => permissions.includes(key);
 
   if (booting) {
-    return <div className="min-h-screen bg-[#0A0A0A] text-zinc-400 flex items-center justify-center">Loading...</div>;
+    return (
+      <>
+        <ToastHost />
+        <div className="min-h-screen bg-[#0A0A0A] text-zinc-400 flex items-center justify-center">Loading...</div>
+      </>
+    );
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+    return (
+      <>
+        <ToastHost />
+        <LoginPage onLogin={handleLogin} />
+      </>
+    );
   }
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-[#0A0A0A] selection:bg-brand selection:text-black">
+      <div className="flex min-h-screen w-full overflow-x-hidden bg-[#0A0A0A] selection:bg-brand selection:text-black">
+        <ToastHost />
         {sidebarOpen ? (
           <button
             type="button"
@@ -163,7 +175,7 @@ export default function App() {
           onClose={() => setSidebarOpen(false)}
         />
         
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 w-full">
           <TopNav
             currentRole={currentRole}
             onLogout={handleLogout}
@@ -172,8 +184,8 @@ export default function App() {
           />
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4 sm:p-6 md:p-8 xl:p-12 max-w-7xl mx-auto w-full">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="admin-content px-3 py-4 sm:p-6 md:p-8 xl:p-12 max-w-7xl mx-auto w-full min-w-0">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={window.location.hash + currentRole}

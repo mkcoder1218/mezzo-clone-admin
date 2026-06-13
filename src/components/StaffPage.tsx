@@ -138,23 +138,23 @@ export function StaffPage({ role }: { role: UserRole }) {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-white uppercase italic">
+    <div className="space-y-6 sm:space-y-8 min-w-0">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white uppercase italic leading-tight whitespace-normal sm:whitespace-nowrap">
             Cashier <span className="text-brand">Registry</span>
           </h1>
           <p className="text-zinc-400 mt-1">Create and monitor cashiers in your hierarchy.</p>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button onClick={fetchAll} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700">
-            <RefreshCcw className="w-4 h-4 mr-2" />
+        <div className="flex flex-wrap gap-2 shrink-0 w-full sm:w-auto">
+          <Button onClick={fetchAll} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700 flex-1 sm:flex-none min-w-0">
+            <RefreshCcw className="w-4 h-4 mr-2 shrink-0" />
             Refresh
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-brand text-black hover:bg-brand/80">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button className="bg-brand text-black hover:bg-brand/80 flex-1 sm:flex-none min-w-0">
+                <Plus className="w-4 h-4 mr-2 shrink-0" />
                 New Staff
               </Button>
             </DialogTrigger>
@@ -221,7 +221,7 @@ export function StaffPage({ role }: { role: UserRole }) {
 
       {error ? <div className="text-sm text-red-400">{error}</div> : null}
 
-      <Card className="bg-[#1A1A1A] border-zinc-800">
+      <Card className="bg-[#1A1A1A] border-zinc-800 overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>My Cashiers</span>
@@ -229,8 +229,8 @@ export function StaffPage({ role }: { role: UserRole }) {
           </CardTitle>
           <CardDescription className="text-zinc-500">Only users created under you (directly or indirectly).</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table className="text-zinc-200">
+        <CardContent className="overflow-x-auto">
+          <Table className="text-zinc-200 min-w-[820px]">
             <TableHeader>
               <TableRow className="border-zinc-800">
                 <TableHead className="text-zinc-400">Cashier</TableHead>

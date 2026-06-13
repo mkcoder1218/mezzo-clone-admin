@@ -19,6 +19,7 @@ type AgentRecord = {
   createdAt: string;
   Role?: { name: string };
   maxWithdrawalAmount?: string | number | null;
+  CreditLimit?: { totalLimit?: string | number | null } | null;
 };
 
 type RoleRecord = { id: string; name: string };
@@ -41,7 +42,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [roleId, setRoleId] = useState<string>("");
-  const [maxWithdrawalAmount, setMaxWithdrawalAmount] = useState("");
+  const [initialLimit, setInitialLimit] = useState("");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editBusy, setEditBusy] = useState(false);
@@ -51,7 +52,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
   const [editPassword, setEditPassword] = useState("");
   const [editRoleId, setEditRoleId] = useState("");
   const [editIsActive, setEditIsActive] = useState<"true" | "false">("true");
-  const [editMaxWithdrawalAmount, setEditMaxWithdrawalAmount] = useState("");
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   const canCreateSuperAgent = role === "SUPER_ADMIN";
@@ -103,7 +103,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
           displayName: displayName || undefined,
           // Commission percentage will be handled by the calculator flow.
           // commissionPercent: commissionPercent === "" ? undefined : Number(commissionPercent),
-          maxWithdrawalAmount: maxWithdrawalAmount === "" ? undefined : Number(maxWithdrawalAmount),
+          initialLimit: initialLimit === "" ? undefined : Number(initialLimit),
           roleId
         })
       });
@@ -112,7 +112,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
       setPassword("");
       setDisplayName("");
       setRoleId("");
-      setMaxWithdrawalAmount("");
+      setInitialLimit("");
       await fetchAgents();
     } catch (e: any) {
       setError(e?.message || "Failed to create agent");
@@ -134,7 +134,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
       if (editRoleId) patch.roleId = editRoleId;
       // Commission percentage will be handled by the calculator flow.
       // if (editCommissionPercent !== "") patch.commissionPercent = Number(editCommissionPercent);
-      patch.maxWithdrawalAmount = editMaxWithdrawalAmount === "" ? null : Number(editMaxWithdrawalAmount);
 
       await apiRequest(`/api/users/${editing.id}`, {
         method: "PATCH",
@@ -167,38 +166,38 @@ export function AgentsPage({ role }: { role: UserRole }) {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="flex items-start justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-white uppercase italic">
+    <div className="space-y-6 sm:space-y-8 min-w-0">
+      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display font-bold text-white uppercase italic leading-tight whitespace-normal sm:whitespace-nowrap">
             Agents <span className="text-brand">Registry</span>
           </h1>
           <p className="text-zinc-400 mt-1">Create and monitor agent accounts.</p>
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Button onClick={fetchAgents} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700">
-            <RefreshCcw className="w-4 h-4 mr-2" />
+        <div className="grid grid-cols-2 gap-2 shrink-0 w-full sm:flex sm:w-auto">
+          <Button onClick={fetchAgents} disabled={loading} className="bg-zinc-800 hover:bg-zinc-700 min-w-0 col-span-2 sm:col-span-1 sm:flex-none">
+            <RefreshCcw className="w-4 h-4 mr-2 shrink-0" />
             Refresh
           </Button>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-brand text-black hover:bg-brand/80">
-                <Plus className="w-4 h-4 mr-2" />
+              <Button className="bg-brand text-black hover:bg-brand/80 min-w-0 col-span-2 sm:col-span-1 sm:flex-none">
+                <Plus className="w-4 h-4 mr-2 shrink-0" />
                 New Agent
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-[#111111] border-zinc-800 text-white">
+            <DialogContent className="bg-[#111111] border-zinc-800 text-white overflow-hidden max-w-[calc(100vw-2rem)] sm:max-w-sm">
               <DialogHeader>
                 <DialogTitle>Create Agent</DialogTitle>
                 <DialogDescription className="text-zinc-400">Adds an agent account in the backend.</DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4">
+              <div className="space-y-4 min-w-0">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Agent Type</label>
                   <Select value={roleId} onValueChange={(v) => setRoleId(v)}>
-                    <SelectTrigger className="bg-zinc-900 border-zinc-800">
-                      <SelectValue placeholder={agentRoleOptions.length ? "Select role" : "No roles available"} />
+                    <SelectTrigger className="w-full min-w-0 max-w-full overflow-hidden bg-zinc-900 border-zinc-800">
+                      <SelectValue className="min-w-0 truncate" placeholder={agentRoleOptions.length ? "Select role" : "No roles available"} />
                     </SelectTrigger>
                     <SelectContent className="bg-[#111111] border-zinc-800 text-white">
                       {agentRoleOptions.map((o) => (
@@ -213,28 +212,28 @@ export function AgentsPage({ role }: { role: UserRole }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Phone Number</label>
-                    <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                    <Input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full min-w-0 bg-zinc-900 border-zinc-800" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Display Name</label>
-                    <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                    <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="w-full min-w-0 bg-zinc-900 border-zinc-800" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Limit Allocation</label>
                   <Input
                     inputMode="decimal"
                     placeholder="e.g. 5000"
-                    value={maxWithdrawalAmount}
-                    onChange={(e) => setMaxWithdrawalAmount(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800"
+                    value={initialLimit}
+                    onChange={(e) => setInitialLimit(e.target.value)}
+                    className="w-full min-w-0 bg-zinc-900 border-zinc-800"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Password</label>
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full min-w-0 bg-zinc-900 border-zinc-800" />
                 </div>
               </div>
 
@@ -262,7 +261,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
 
       {error ? <div className="text-sm text-red-400">{error}</div> : null}
 
-      <Card className="bg-[#1A1A1A] border-zinc-800">
+      <Card className="bg-[#1A1A1A] border-zinc-800 overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>All Agents</span>
@@ -270,14 +269,14 @@ export function AgentsPage({ role }: { role: UserRole }) {
           </CardTitle>
           <CardDescription className="text-zinc-500">Includes agents and super agents.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table className="text-zinc-200">
+        <CardContent className="overflow-x-auto">
+          <Table className="text-zinc-200 min-w-[760px]">
             <TableHeader>
               <TableRow className="border-zinc-800">
                 <TableHead className="text-zinc-400">Type</TableHead>
                 <TableHead className="text-zinc-400">Display Name</TableHead>
                 <TableHead className="text-zinc-400">Phone</TableHead>
-                <TableHead className="text-zinc-400 text-right">Withdrawal Limit</TableHead>
+                <TableHead className="text-zinc-400 text-right">Limit</TableHead>
                 <TableHead className="text-zinc-400">Status</TableHead>
                 <TableHead className="text-zinc-400">Created</TableHead>
                 {role === "SUPER_ADMIN" ? <TableHead className="text-zinc-400 text-right">Edit</TableHead> : null}
@@ -294,7 +293,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
                   <TableCell className="text-white">{a.displayName || "-"}</TableCell>
                   <TableCell className="text-zinc-300">{a.phoneNumber}</TableCell>
                   <TableCell className="text-right text-zinc-300">
-                    {a.maxWithdrawalAmount == null || a.maxWithdrawalAmount === "" ? "No limit" : Number(a.maxWithdrawalAmount).toLocaleString()}
+                    {a.CreditLimit?.totalLimit == null || a.CreditLimit?.totalLimit === "" ? "0.00" : Number(a.CreditLimit.totalLimit).toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge className={a.isActive ? "bg-emerald-600" : "bg-zinc-700"}>{a.isActive ? "ACTIVE" : "DISABLED"}</Badge>
@@ -310,7 +309,6 @@ export function AgentsPage({ role }: { role: UserRole }) {
                             setEditDisplayName(a.displayName || "");
                             setEditRoleId(roles.find((r) => r.name === a.Role?.name)?.id || "");
                             setEditIsActive(a.isActive ? "true" : "false");
-                            setEditMaxWithdrawalAmount(a.maxWithdrawalAmount == null ? "" : String(a.maxWithdrawalAmount));
                             setEditPassword("");
                             setEditOpen(true);
                           }}
@@ -345,18 +343,18 @@ export function AgentsPage({ role }: { role: UserRole }) {
       </Card>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="bg-[#111111] border-zinc-800 text-white">
+        <DialogContent className="bg-[#111111] border-zinc-800 text-white overflow-hidden max-w-[calc(100vw-2rem)] sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Edit Agent</DialogTitle>
             <DialogDescription className="text-zinc-400">Updates this agent record in the backend.</DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Role</label>
               <Select value={editRoleId} onValueChange={(v) => setEditRoleId(v)}>
-                <SelectTrigger className="bg-zinc-900 border-zinc-800">
-                  <SelectValue placeholder="Select role" />
+                <SelectTrigger className="w-full min-w-0 max-w-full overflow-hidden bg-zinc-900 border-zinc-800">
+                  <SelectValue className="min-w-0 truncate" placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#111111] border-zinc-800 text-white">
                   {roles
@@ -373,12 +371,12 @@ export function AgentsPage({ role }: { role: UserRole }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Phone</label>
-                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full min-w-0 bg-zinc-900 border-zinc-800" />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Active</label>
                 <Select value={editIsActive} onValueChange={(v) => setEditIsActive(v as any)}>
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                  <SelectTrigger className="w-full min-w-0 max-w-full overflow-hidden bg-zinc-900 border-zinc-800">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#111111] border-zinc-800 text-white">
@@ -391,7 +389,7 @@ export function AgentsPage({ role }: { role: UserRole }) {
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Display Name</label>
-              <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} className="bg-zinc-900 border-zinc-800" />
+              <Input value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} className="w-full min-w-0 bg-zinc-900 border-zinc-800" />
             </div>
 
             <div className="space-y-2">
@@ -400,21 +398,11 @@ export function AgentsPage({ role }: { role: UserRole }) {
                 type="password"
                 value={editPassword}
                 onChange={(e) => setEditPassword(e.target.value)}
-                className="bg-zinc-900 border-zinc-800"
+                className="w-full min-w-0 bg-zinc-900 border-zinc-800"
                 placeholder="leave blank to keep unchanged"
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Withdrawal Limit</label>
-              <Input
-                inputMode="decimal"
-                placeholder="e.g. 5000"
-                value={editMaxWithdrawalAmount}
-                onChange={(e) => setEditMaxWithdrawalAmount(e.target.value)}
-                className="bg-zinc-900 border-zinc-800"
-              />
-            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
