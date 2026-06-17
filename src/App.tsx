@@ -44,6 +44,7 @@ import { ResultsPage } from "./components/ResultsPage";
 import { ReportsPage } from "./components/ReportsPage";
 import { SettingsPage } from "./components/SettingsPage";
 import { BannersPage } from "./components/BannersPage";
+import { FastKenoConfigPage } from "./components/FastKenoConfigPage";
 import { BetQueuePage } from "./components/BetQueuePage";
 import { DataFetchingPage } from "./modules/data-fetching/DataFetchingPage";
 import { WorkersPage } from "./modules/workers/WorkersPage";
@@ -237,6 +238,12 @@ export default function App() {
                       path="/settings"
                       element={
                         currentRole === "SUPER_ADMIN" ? <SettingsPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>
+                      }
+                    />
+                    <Route
+                      path="/games/fast-keno"
+                      element={
+                        currentRole === "SUPER_ADMIN" ? <FastKenoConfigPage /> : <div className="p-8 text-zinc-400">Forbidden.</div>
                       }
                     />
                     <Route

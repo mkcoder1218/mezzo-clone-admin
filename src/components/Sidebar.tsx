@@ -41,6 +41,7 @@ export const Sidebar = ({
   const location = useLocation();
   const [oddsExpanded, setOddsExpanded] = useState(true);
   const [opsExpanded, setOpsExpanded] = useState(true);
+  const [gamesExpanded, setGamesExpanded] = useState(true);
   const [adminExpanded, setAdminExpanded] = useState(true);
   const hasPermission = (key: string) => (permissions || []).includes(key);
   
@@ -95,6 +96,15 @@ export const Sidebar = ({
     [currentRole]
   );
   const opsActive = opsItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
+
+  const gamesItems = useMemo(
+    () =>
+      [
+        { name: "Fast Keno", path: "/games/fast-keno", icon: Zap, roles: ["SUPER_ADMIN"] },
+      ].filter((i) => i.roles.includes(currentRole)),
+    [currentRole]
+  );
+  const gamesActive = gamesItems.some((i) => location.pathname === i.path || location.pathname.startsWith(i.path + "/"));
 
   const adminItems = useMemo(
     () =>
@@ -160,6 +170,43 @@ export const Sidebar = ({
               {opsExpanded ? (
                 <div className="mt-1 ml-3 pl-3 border-l border-zinc-800/70 space-y-1">
                   {opsItems.map((item) => {
+                    const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={onClose}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                          isActive ? "bg-lime-400 text-black font-bold" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                        }`}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span className="text-[13px]">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {gamesItems.length ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setGamesExpanded((v) => !v)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  gamesActive ? "bg-lime-400/10 text-lime-400" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
+                }`}
+              >
+                <Zap className="w-5 h-5" />
+                <span className="flex-1 text-left font-bold">Games</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${gamesExpanded ? "rotate-180" : ""}`} />
+              </button>
+
+              {gamesExpanded ? (
+                <div className="mt-1 ml-3 pl-3 border-l border-zinc-800/70 space-y-1">
+                  {gamesItems.map((item) => {
                     const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + "/");
                     return (
                       <Link
