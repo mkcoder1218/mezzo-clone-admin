@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Calculator, Percent, Save, Table2, Target } from "lucide-react";
+import { AlertTriangle, Calculator, Percent, RefreshCw, Save, Table2, Target } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,31 @@ type FastKenoConfig = {
   rtpByPickCount: Record<string, number>;
 };
 
+type FastKenoTicket = {
+  id: string;
+  ticketNumber: string;
+  selectedNumbers: number[];
+  stake: number;
+  payout: number;
+  rtpGain: number;
+  hits?: number | null;
+  status: "placed" | "won" | "lost" | "cancelled";
+  createdAt: string;
+  settledAt?: string | null;
+  user?: {
+    id: string;
+    displayName?: string | null;
+    phoneNumber?: string | null;
+    email?: string | null;
+  } | null;
+  round?: {
+    id: string;
+    roundNumber: string;
+    status: string;
+    drawNumbers?: number[] | null;
+  } | null;
+};
+
 const pickCounts = Array.from({ length: 10 }, (_, index) => String(index + 1));
 const hitCounts = Array.from({ length: 11 }, (_, index) => index);
 
@@ -36,26 +61,66 @@ function paytableValue(paytable: Paytable | undefined, pickCount: string, hitCou
   return row[String(hitCount)] ?? row[String(Number(hitCount))];
 }
 
+function fmtMoney(value: unknown) {
+  const n = Number(value || 0);
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function playerLabel(ticket: FastKenoTicket) {
+  return ticket.user?.displayName || ticket.user?.phoneNumber || ticket.user?.email || ticket.user?.id?.slice(0, 8) || "-";
+}
+
 export function FastKenoConfigPage() {
   const [draftTargetRtp, setDraftTargetRtp] = useState(95);
+  const [activeTab, setActiveTab] = useState<"config" | "tickets">("config");
 
-  const q = useQuery({
+  const q = useQuery<{ config: FastKenoConfig }>({
     queryKey: ["fast-keno-config"],
     queryFn: async () => apiRequest<{ config: FastKenoConfig }>("/api/admin/games/fast-keno-config"),
-    onSuccess: (data) => {
-      if (data?.config) setDraftTargetRtp(data.config.targetRtpPercent);
-    },
   });
 
   const mutation = useMutation({
     mutationFn: async (payload: { targetRtpPercent: number }) =>
-      apiRequest<{ config: FastKenoConfig }>("/api/admin/games/fast-keno-config", { method: "PUT", body: payload }),
+      apiRequest<{ config: FastKenoConfig }>("/api/admin/games/fast-keno-config", { method: "PUT", body: payload as any }),
     onSuccess: (data) => {
       if (data?.config) setDraftTargetRtp(data.config.targetRtpPercent);
     },
   });
 
+  const ticketsQuery = useQuery<{ tickets: FastKenoTicket[] }>({
+    queryKey: ["fast-keno-admin-tickets"],
+    queryFn: async () => apiRequest<{ tickets: FastKenoTicket[] }>("/api/admin/games/fast-keno-tickets?limit=300"),
+  });
+
   const config = q.data?.config;
+  const tickets = ticketsQuery.data?.tickets || [];
+
+  useEffect(() => {
+    if (config) setDraftTargetRtp(config.targetRtpPercent);
+  }, [config]);
+
+  const ticketSummary = useMemo(() => {
+    return tickets.reduce(
+      (summary, ticket) => {
+        const stake = Number(ticket.stake || 0);
+        const payout = Number(ticket.payout || 0);
+        summary.stake += stake;
+        summary.payout += payout;
+        summary.rtpGain += payout - stake;
+        if (ticket.status === "won") summary.won += 1;
+        else summary.notWon += 1;
+        return summary;
+      },
+      { stake: 0, payout: 0, rtpGain: 0, won: 0, notWon: 0 }
+    );
+  }, [tickets]);
 
   const paytableMissing = useMemo(() => {
     if (!config?.paytable) return true;
@@ -86,6 +151,33 @@ export function FastKenoConfigPage() {
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">{queryError}</div>
       ) : null}
 
+      <div className="flex flex-wrap gap-2 border-b border-zinc-800">
+        {[
+          { key: "config", label: "Config", icon: Target },
+          { key: "tickets", label: "Tickets", icon: Table2 },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key as "config" | "tickets")}
+              className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-black uppercase tracking-widest transition-colors ${
+                active
+                  ? "border-brand text-brand"
+                  : "border-transparent text-zinc-500 hover:text-white"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === "config" ? (
+        <>
       <Card className="bg-[#1A1A1A] border-zinc-800/50">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -273,6 +365,147 @@ export function FastKenoConfigPage() {
           </div>
         </CardContent>
       </Card>
+        </>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <Card className="bg-[#1A1A1A] border-zinc-800/50">
+              <CardContent className="p-5">
+                <div className="text-[10px] uppercase tracking-widest text-zinc-500">Tickets</div>
+                <div className="mt-2 text-2xl font-bold text-white">{tickets.length}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1A1A1A] border-zinc-800/50">
+              <CardContent className="p-5">
+                <div className="text-[10px] uppercase tracking-widest text-zinc-500">Total Bet</div>
+                <div className="mt-2 text-2xl font-bold text-white">{fmtMoney(ticketSummary.stake)}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1A1A1A] border-zinc-800/50">
+              <CardContent className="p-5">
+                <div className="text-[10px] uppercase tracking-widest text-zinc-500">Total Payout</div>
+                <div className="mt-2 text-2xl font-bold text-white">{fmtMoney(ticketSummary.payout)}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-[#1A1A1A] border-zinc-800/50">
+              <CardContent className="p-5">
+                <div className="text-[10px] uppercase tracking-widest text-zinc-500">RTP Gain</div>
+                <div className={`mt-2 text-2xl font-bold ${ticketSummary.rtpGain >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {ticketSummary.rtpGain > 0 ? "+" : ""}{fmtMoney(ticketSummary.rtpGain)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="bg-[#1A1A1A] border-zinc-800/50">
+            <CardHeader>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
+                    <Table2 className="h-5 w-5 text-zinc-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-white">Fast Keno Tickets</CardTitle>
+                    <CardDescription className="text-zinc-400">
+                      Recent beted numbers with RTP gain. Won tickets are green; all non-winning tickets are red.
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  disabled={ticketsQuery.isFetching}
+                  onClick={() => ticketsQuery.refetch()}
+                  className="rounded-xl bg-zinc-900 text-[10px] font-bold uppercase text-zinc-200 hover:bg-zinc-800"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${ticketsQuery.isFetching ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {ticketsQuery.isLoading ? (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-400">Loading tickets...</div>
+              ) : ticketsQuery.isError ? (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">Tickets failed to load.</div>
+              ) : tickets.length === 0 ? (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-400">No Fast Keno tickets found.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-[1120px] w-full border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Ticket</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Player</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Draw</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Beted Numbers</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-right text-zinc-400">Bet</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-right text-zinc-400">Payout</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-right text-zinc-400">RTP Gain</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-center text-zinc-400">Hits</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Status</th>
+                        <th className="border border-zinc-800 bg-zinc-900 px-3 py-2 text-left text-zinc-400">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tickets.map((ticket) => {
+                        const won = ticket.status === "won";
+                        const stake = Number(ticket.stake || 0);
+                        const payout = Number(ticket.payout || 0);
+                        const rtpGain = Number(ticket.rtpGain ?? payout - stake);
+                        return (
+                          <tr
+                            key={ticket.id}
+                            className={won ? "bg-emerald-500/15" : "bg-rose-500/15"}
+                          >
+                            <td className="border border-zinc-800 px-3 py-2 font-mono text-xs text-zinc-200">{ticket.ticketNumber}</td>
+                            <td className="border border-zinc-800 px-3 py-2 text-zinc-200">{playerLabel(ticket)}</td>
+                            <td className="border border-zinc-800 px-3 py-2 font-mono text-xs text-zinc-300">
+                              {ticket.round?.roundNumber || "-"}
+                            </td>
+                            <td className="border border-zinc-800 px-3 py-2">
+                              <div className="flex flex-wrap gap-1">
+                                {(ticket.selectedNumbers || []).map((num) => {
+                                  const drawn = ticket.round?.drawNumbers?.includes(num);
+                                  return (
+                                    <span
+                                      key={`${ticket.id}-${num}`}
+                                      className={`flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-xs font-black ${
+                                        drawn ? "bg-brand text-black" : "bg-zinc-900 text-zinc-200"
+                                      }`}
+                                    >
+                                      {num}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                            <td className="border border-zinc-800 px-3 py-2 text-right font-semibold text-zinc-100">{fmtMoney(stake)}</td>
+                            <td className="border border-zinc-800 px-3 py-2 text-right font-semibold text-zinc-100">{fmtMoney(payout)}</td>
+                            <td className={`border border-zinc-800 px-3 py-2 text-right font-black ${rtpGain >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                              {rtpGain > 0 ? "+" : ""}{fmtMoney(rtpGain)}
+                            </td>
+                            <td className="border border-zinc-800 px-3 py-2 text-center font-bold text-zinc-100">
+                              {ticket.hits ?? "-"}
+                            </td>
+                            <td className="border border-zinc-800 px-3 py-2">
+                              <span className={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wider ${
+                                won ? "bg-emerald-400 text-black" : "bg-rose-500 text-white"
+                              }`}>
+                                {ticket.status}
+                              </span>
+                            </td>
+                            <td className="border border-zinc-800 px-3 py-2 text-xs text-zinc-300">{fmtDate(ticket.createdAt)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
