@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, Calculator, Percent, RefreshCw, Save, Table2, Target } from "lucide-react";
+import { AlertTriangle, Calculator, Percent, RefreshCw, Save, Table2, Target, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,9 @@ function playerLabel(ticket: FastKenoTicket) {
 export function FastKenoConfigPage() {
   const [draftTargetRtp, setDraftTargetRtp] = useState(95);
   const [activeTab, setActiveTab] = useState<"config" | "tickets">("config");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "won" | "lost" | "placed" | "cancelled">("all");
+  const [selectedTicket, setSelectedTicket] = useState<FastKenoTicket | null>(null);
 
   const q = useQuery<{ config: FastKenoConfig }>({
     queryKey: ["fast-keno-config"],
@@ -95,8 +98,14 @@ export function FastKenoConfigPage() {
   });
 
   const ticketsQuery = useQuery<{ tickets: FastKenoTicket[] }>({
-    queryKey: ["fast-keno-admin-tickets"],
-    queryFn: async () => apiRequest<{ tickets: FastKenoTicket[] }>("/api/admin/games/fast-keno-tickets?limit=300"),
+    queryKey: ["fast-keno-admin-tickets", phoneFilter, statusFilter],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: "300" });
+      const phone = phoneFilter.trim();
+      if (phone) params.set("phoneNumber", phone);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      return apiRequest<{ tickets: FastKenoTicket[] }>(`/api/admin/games/fast-keno-tickets?${params.toString()}`);
+    },
   });
 
   const config = q.data?.config;
@@ -423,6 +432,42 @@ export function FastKenoConfigPage() {
               </div>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(220px,320px)_180px_auto] lg:items-end">
+                <div>
+                  <div className="mb-2 text-[10px] uppercase tracking-widest text-zinc-500">Phone Number</div>
+                  <Input
+                    value={phoneFilter}
+                    onChange={(e) => setPhoneFilter(e.target.value)}
+                    placeholder="Search phone"
+                    className="border-zinc-800 bg-zinc-900 text-white"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 text-[10px] uppercase tracking-widest text-zinc-500">Win / Lost</div>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                    className="h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 text-sm text-white outline-none focus:border-brand"
+                  >
+                    <option value="all">All</option>
+                    <option value="won">Win</option>
+                    <option value="lost">Lost</option>
+                    <option value="placed">Placed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setPhoneFilter("");
+                    setStatusFilter("all");
+                  }}
+                  className="rounded-xl bg-zinc-900 text-[10px] font-bold uppercase text-zinc-200 hover:bg-zinc-800"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+
               {ticketsQuery.isLoading ? (
                 <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 text-sm text-zinc-400">Loading tickets...</div>
               ) : ticketsQuery.isError ? (
@@ -455,7 +500,9 @@ export function FastKenoConfigPage() {
                         return (
                           <tr
                             key={ticket.id}
-                            className={won ? "bg-emerald-500/15" : "bg-rose-500/15"}
+                            onClick={() => setSelectedTicket(ticket)}
+                            className={`${won ? "bg-emerald-500/15" : "bg-rose-500/15"} cursor-pointer transition-colors hover:bg-brand/10`}
+                            title="Open ticket result"
                           >
                             <td className="border border-zinc-800 px-3 py-2 font-mono text-xs text-zinc-200">{ticket.ticketNumber}</td>
                             <td className="border border-zinc-800 px-3 py-2 text-zinc-200">{playerLabel(ticket)}</td>
@@ -504,6 +551,119 @@ export function FastKenoConfigPage() {
               )}
             </CardContent>
           </Card>
+
+          {selectedTicket ? (
+            <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4">
+              <div className="w-full max-w-3xl rounded-2xl border border-zinc-800 bg-[#111] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-500">Ticket Result</div>
+                    <div className="mt-1 font-mono text-lg font-black text-white">{selectedTicket.ticketNumber}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTicket(null)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-white"
+                    title="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-5 p-5">
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Player</div>
+                      <div className="mt-1 truncate text-sm font-bold text-white">{playerLabel(selectedTicket)}</div>
+                      <div className="mt-1 text-xs text-zinc-500">{selectedTicket.user?.phoneNumber || "-"}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Draw</div>
+                      <div className="mt-1 font-mono text-sm font-bold text-white">{selectedTicket.round?.roundNumber || "-"}</div>
+                      <div className="mt-1 text-xs text-zinc-500">{selectedTicket.round?.status || "-"}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Hits</div>
+                      <div className="mt-1 text-sm font-bold text-white">{selectedTicket.hits ?? "-"}</div>
+                      <div className="mt-1 text-xs text-zinc-500">of {selectedTicket.selectedNumbers.length}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Status</div>
+                      <div className={selectedTicket.status === "won" ? "mt-1 text-sm font-black uppercase text-emerald-400" : "mt-1 text-sm font-black uppercase text-rose-400"}>
+                        {selectedTicket.status}
+                      </div>
+                      <div className="mt-1 text-xs text-zinc-500">{fmtDate(selectedTicket.settledAt)}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                      <div className="mb-3 text-[10px] uppercase tracking-widest text-zinc-500">Beted Numbers</div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTicket.selectedNumbers.map((num) => {
+                          const matched = selectedTicket.round?.drawNumbers?.includes(num);
+                          return (
+                            <span
+                              key={`picked-${num}`}
+                              className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-black ${
+                                matched ? "bg-brand text-black" : "bg-zinc-800 text-zinc-200"
+                              }`}
+                            >
+                              {num}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+                      <div className="mb-3 text-[10px] uppercase tracking-widest text-zinc-500">Draw Result</div>
+                      {selectedTicket.round?.drawNumbers?.length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTicket.round.drawNumbers.map((num) => {
+                            const matched = selectedTicket.selectedNumbers.includes(num);
+                            return (
+                              <span
+                                key={`drawn-${num}`}
+                                className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm font-black ${
+                                  matched ? "bg-brand text-black" : "bg-zinc-800 text-zinc-200"
+                                }`}
+                              >
+                                {num}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-zinc-500">Result not settled yet.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-4">
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Bet</div>
+                      <div className="mt-1 text-sm font-bold text-white">{fmtMoney(selectedTicket.stake)}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Payout</div>
+                      <div className="mt-1 text-sm font-bold text-white">{fmtMoney(selectedTicket.payout)}</div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">RTP Gain</div>
+                      <div className={`mt-1 text-sm font-black ${Number(selectedTicket.rtpGain) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {Number(selectedTicket.rtpGain) > 0 ? "+" : ""}{fmtMoney(selectedTicket.rtpGain)}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-500">Created</div>
+                      <div className="mt-1 text-xs font-bold text-white">{fmtDate(selectedTicket.createdAt)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
     </div>
